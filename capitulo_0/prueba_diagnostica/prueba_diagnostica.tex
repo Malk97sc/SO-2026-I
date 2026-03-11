@@ -1,0 +1,161 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Sistemas Operativos 2026-I}
+\rhead{Prueba Diagnóstica}
+\cfoot{\thepage}
+
+\title{\huge Prueba Diagnóstica: Introducción a la Programación en C}
+\author{Monitorías de Sistemas Operativos}
+\date{Marzo 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Instrucciones}
+\begin{enumerate}
+    \item Resuelva todos los ejercicios utilizando el lenguaje C.
+    \item El código debe compilar correctamente.
+    \item Organice su código de forma clara y utilice funciones cuando sea necesario.
+    \item No use IA generativa (ChatGPT, Gemini, Copilot, etc.).
+    \item Comente brevemente las partes importantes del programa si lo considera necesario.
+\end{enumerate}
+\newpage
+
+\section*{Ejercicio 1 - Control de flujo}
+
+Escriba un programa que lea dos números enteros $a$ y $b$. El programa debe recorrer todos los números enteros en el intervalo $[a, b]$ y para cada número $i$ debe imprimir:
+
+\begin{itemize}
+    \item Si $1 \le i \le 9$, imprima su representación en inglés en minúsculas (one, two, ..., nine).
+    \item Si $i > 9$ y el número es par, imprima: \texttt{even}.
+    \item Si $i > 9$ y el número es impar, imprima: \texttt{odd}.
+\end{itemize}
+
+\subsection*{Formato de entrada}
+La entrada contiene dos líneas:
+\begin{enumerate}
+    \item $a$: Inicio del intervalo.
+    \item $b$: Final del intervalo.
+\end{enumerate}
+
+\subsection*{Ejemplo}
+\textbf{Entrada:}
+\begin{lstlisting}[numbers=none]
+8
+11
+\end{lstlisting}
+
+\textbf{Salida:}
+\begin{lstlisting}[numbers=none]
+eight
+nine
+even
+odd
+\end{lstlisting}
+
+\newpage
+
+\section*{Ejercicio 2 - Vectores dinámicos y paso por referencia}
+
+Escriba un programa que realice las siguientes tareas:
+\begin{enumerate}
+    \item Lea un número entero $n$ que representa la cantidad de elementos.
+    \item Cree dinámicamente un vector de tamaño $n$ utilizando memoria dinámica (\texttt{malloc}).
+    \item Lea $n$ números enteros desde la entrada estándar y guárdelos en el vector.
+    \item Implemente una función que reciba el vector y calcule (usando punteros para devolver los valores):
+    \begin{itemize}
+        \item La suma de los elementos.
+        \item El promedio.
+        \item El valor máximo.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Requisitos}
+\begin{itemize}
+    \item El vector debe ser creado usando memoria dinámica.
+    \item Debe utilizar punteros para devolver los resultados de la función (parámetros por referencia).
+    \item Libere la memoria reservada al final del programa (\texttt{free}).
+\end{itemize}
+
+\subsection*{Ejemplo de ejecución}
+\textbf{Entrada:}
+\begin{lstlisting}[numbers=none]
+5
+10 4 8 2 6
+\end{lstlisting}
+
+\textbf{Salida:}
+\begin{lstlisting}[numbers=none]
+Sum: 30
+Average: 6.00
+Max: 10
+\end{lstlisting}
+\newpage
+
+\section*{Ejercicio 3 - Lectura de archivos}
+
+Se dispone de un archivo llamado \texttt{numbers.txt} que contiene un número entero por línea.
+
+\subsection*{Tarea}
+Escriba un programa en C que:
+\begin{enumerate}
+    \item Abra el archivo \texttt{numbers.txt} en modo lectura.
+    \item Lea todos los números almacenados en el archivo.
+    \item Almacene los valores en un vector dinámico.
+    \item Calcule e imprima:
+    \begin{itemize}
+        \item La cantidad total de números.
+        \item La suma de los números.
+        \item El promedio.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Requisitos}
+\begin{itemize}
+    \item Usar \texttt{FILE*}, \texttt{fopen} y \texttt{fclose}.
+    \item Usar \texttt{fscanf} o \texttt{fgets}.
+    \item Utilizar memoria dinámica para el vector.
+\end{itemize}
+
+
+\end{document}

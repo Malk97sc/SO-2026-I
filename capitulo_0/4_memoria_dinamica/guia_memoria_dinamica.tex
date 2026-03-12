@@ -1,0 +1,124 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Memoria Dinámica}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Memoria Dinámica en C}}
+\author{Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+En C, el tamaño de los arreglos normales debe conocerse antes de que el programa se ejecute. Sin embargo, en aplicaciones reales (como un sistema operativo gestionando procesos), no sabemos de antemano cuántos datos necesitaremos. La memoria dinámica nos permite solicitar espacio según sea necesario.
+
+\section{Idea Fundamental}
+La memoria dinámica permite reservar memoria durante la ejecución del programa (en el \textbf{Heap}), en lugar de definirla en tiempo de compilación (en el \textbf{Stack}).
+
+\section{Sintaxis Básica}
+Se utilizan funciones de la librería \texttt{<stdlib.h>}:
+\begin{lstlisting}[numbers=none]
+ptr = (tipo*) malloc(tamaño_en_bytes);
+free(ptr);
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(){
+    int n = 5;
+    int *arr = (int*) malloc(n * sizeof(int));
+
+    if(arr == NULL) return 1; // Error al reservar
+
+    for(int i=0; i<n; i++) arr[i] = i * 2;
+    
+    printf("Primer elemento: %d\n", arr[0]);
+
+    free(arr); // Importante: liberar la memoria
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se calcula el tamaño necesario usando \texttt{n * sizeof(int)}.
+    \item \texttt{malloc} reserva ese espacio en el Heap y devuelve la dirección de inicio.
+    \item Se verifica si el puntero es \texttt{NULL} (falla en la reserva).
+    \item Se usa el puntero como si fuera un arreglo.
+    \item Se libera el espacio con \texttt{free} para que el sistema operativo pueda reutilizarlo.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+\begin{center}
+\begin{tabular}{|c|c|l|}
+\hline
+\textbf{Segmento} & \textbf{Variable} & \textbf{Estado} \\ \hline
+Stack & arr & Puntero (ej: 0x500) \\ \hline
+Heap & [0x500...0x514] & Datos reservados (20 bytes) \\ \hline
+\end{tabular}
+\end{center}
+
+\section{Patrones comunes de uso}
+Creación de arreglos de tamaño variable:
+\begin{lstlisting}
+int *crear_arreglo(int n){
+    return (int*) malloc(n * sizeof(int));
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Memory Leak:} No usar \texttt{free()}, lo que agota la RAM del sistema.
+    \item \textbf{Dangling Pointer:} Intentar acceder a la memoria después de haber hecho \texttt{free()}.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Siempre verificar si \texttt{malloc} devolvió \texttt{NULL}.
+    \item Asignar \texttt{NULL} al puntero inmediatamente después de liberar: \texttt{free(p); p = NULL;}.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Pida al usuario un número $N$, cree un arreglo dinámico para $N$ flotantes, lea los valores y calcule su promedio.
+    \item Use \texttt{realloc} para expandir un arreglo dinámico de tamaño 2 a tamaño 4.
+\end{enumerate}
+
+\end{document}

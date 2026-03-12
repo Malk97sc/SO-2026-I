@@ -1,0 +1,114 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Control de Flujo}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Control de Flujo en C}}
+\author{Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Los programas no siempre se ejecutan en línea recta. Necesitamos que la CPU tome decisiones o repita tareas condicionalmente (como un sistema operativo que espera una señal de teclado o gestiona múltiples procesos en un bucle).
+
+\section{Idea Fundamental}
+El control de flujo permite alterar el orden secuencial de ejecución de las instrucciones mediante \textbf{condicionales} y \textbf{bucles}.
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+if(condicion){ ... } else { ... }
+for(inicializacion; condicion; incremento){ ... }
+while(condicion){ ... }
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int main(){
+    int n = 3;
+
+    if(n > 0){
+        for(int i = 0; i < n; i++){
+            printf("Proceso %d ejecutándose\n", i);
+        }
+    }
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se evalúa si \texttt{n} es mayor a 0.
+    \item Si es verdadero, entra al bucle \texttt{for}.
+    \item El bucle se repite mientras \texttt{i < n}.
+    \item En cada paso se imprime un mensaje y se incrementa \texttt{i}.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+A nivel de bajo nivel, esto se traduce en instrucciones de salto (\texttt{jump}) en ensamblador. Las variables de control (como \texttt{i}) viven en el Stack de la función \texttt{main}.
+
+\section{Patrones comunes de uso}
+El bucle infinito para monitorización o servicios:
+\begin{lstlisting}
+while(1){
+    // Escuchar peticiones
+    if(recibir_senal()) break;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Bucle Infinito:} La condición de salida nunca se vuelve falsa.
+    \item \textbf{Error de Off-by-one:} El bucle se ejecuta una vez más o una vez menos de lo deseado (\texttt{i <= n} vs \texttt{i < n}).
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Indentar correctamente el código para visualizar la jerarquía.
+    \item Evitar el uso de \texttt{goto} (hacerlo sólo si es para manejo de errores en C crítico).
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba un programa que imprima los números pares del 1 al 100 usando un bucle \texttt{for}.
+    \item Implemente un programa que lea un número e indique si es primo.
+\end{enumerate}
+
+\end{document}

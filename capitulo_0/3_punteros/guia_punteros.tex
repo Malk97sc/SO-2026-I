@@ -1,0 +1,121 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Punteros}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Punteros en C}}
+\author{Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+En muchos programas necesitamos trabajar directamente con direcciones de memoria. Esto permite modificar variables desde funciones, manejar estructuras dinámicas o interactuar con dispositivos y sistemas operativos. Para ello, C utiliza \textbf{punteros}.
+
+\section{Idea Fundamental}
+Un puntero es una \textbf{variable} que almacena la \textbf{dirección de memoria} de otra variable.
+
+\section{Sintaxis Básica}
+La declaración de un puntero sigue el formato:
+\begin{lstlisting}[numbers=none]
+tipo_de_dato *nombre_del_puntero;
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int main(){
+    int x = 10;
+    int *p = &x; // p almacena la direccion de x
+
+    printf("Valor de x: %d\n", x);
+    printf("Valor a traves del puntero: %d\n", *p);
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se declara una variable \texttt{x} con el valor 10.
+    \item Se declara un puntero \texttt{p}.
+    \item Con el operador \texttt{\&} (referencia), \texttt{p} almacena la dirección de memoria de \texttt{x}.
+    \item Con el operador \texttt{*} (dereferencia), \texttt{*p} accede al valor almacenado en esa dirección.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+Conceptualmente, la memoria se organiza de la siguiente manera:
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Variable} & \textbf{Dirección} & \textbf{Valor} \\ \hline
+x & 0x100 & 10 \\ \hline
+p & 0x200 & 0x100 \\ \hline
+\end{tabular}
+\end{center}
+
+\textbf{Explicación:} \texttt{p} almacena la dirección de \texttt{x}. Al usar \texttt{*p}, el procesador va a la dirección \texttt{0x100} y lee el valor allí almacenado.
+
+\section{Patrones comunes de uso}
+El uso más común de los punteros es el \textbf{Paso por Referencia} para modificar variables dentro de funciones:
+\begin{lstlisting}
+void duplicar(int *n){
+    *n = (*n) * 2;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Puntero no inicializado:} Intentar usar un puntero que no apunta a nada válido (\texttt{Segmentation Fault}).
+    \item \textbf{Confusión entre \texttt{*} y \texttt{\&}:} Usar el operador incorrecto al asignar o acceder.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Inicializar siempre los punteros (usar \texttt{NULL} si no tienen destino aún).
+    \item Usar nombres descriptivos (ej: \texttt{ptr\_edad}).
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba una función que intercambie el valor de dos enteros usando punteros.
+    \item Cree un programa que imprima la dirección de memoria de una variable y luego la dirección de memoria del puntero que la apunta.
+\end{enumerate}
+
+\end{document}

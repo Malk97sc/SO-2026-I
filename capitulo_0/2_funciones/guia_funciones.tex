@@ -1,0 +1,112 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Funciones}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Funciones en C}}
+\author{Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Construir un Sistema Operativo completo en un solo bloque de código sería imposible. Las funciones nos permiten dividir problemas grandes en partes pequeñas, reutilizables y fáciles de probar.
+
+\section{Idea Fundamental}
+Una función es un bloque de código independiente que realiza una tarea específica y puede devolver un resultado.
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+tipo_retorno nombre_funcion(parametros){
+    // Cuerpo
+    return valor;
+}
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int cuadrado(int n){
+    return n * n;
+}
+
+int main(){
+    int x = 5;
+    printf("El cuadrado es %d\n", cuadrado(x));
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se define la función \texttt{cuadrado} que recibe un entero y devuelve un entero.
+    \item En \texttt{main}, se llama a la función pasando \texttt{x} como argumento.
+    \item La ejecución salta a la función, calcula el resultado y lo devuelve.
+    \item El valor devuelto se usa en el \texttt{printf}.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+Cada vez que se llama a una función, se crea un \textbf{Stack Frame} en la memoria Stack. Allí se guardan los parámetros y las variables locales. Al terminar la función, ese espacio se libera automáticamente.
+
+\section{Patrones comunes de uso}
+Modularización para cálculos repetitivos:
+\begin{lstlisting}
+float calcular_promedio(int suma, int cantidad){
+    return (float)suma / cantidad;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Variables locales inaccesibles:} Intentar usar una variable de una función desde otra.
+    \item \textbf{Falta de prototipo:} Llamar a una función antes de definirla sin haber declarado su prototipo arriba.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Una función debe hacer solo una cosa (\textit{Single Responsibility Principle}).
+    \item Usar verbos para los nombres de las funciones (ej: \texttt{ordenar\_arreglo}).
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba una función que reciba el radio de un círculo y devuelva su área.
+    \item Cree una función que reciba un número e imprima si es par o impar (sin devolver valor).
+\end{enumerate}
+
+\end{document}

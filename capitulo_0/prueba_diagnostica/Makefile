@@ -8,6 +8,6 @@ $(FILENAME).pdf: $(FILENAME).tex
 	rm -f *.aux *.log *.out
 
 clean:
-	rm -f $(FILENAME).pdf *.aux *.log *.out
+	rm -f *.pdf *.aux *.log *.out
 
 .PHONY: all clean

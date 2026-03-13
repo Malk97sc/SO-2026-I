@@ -1,10 +1,10 @@
-FILENAME=guia_memoria_dinamica
+FILES=guia_memoria_dinamica guia_vector_dinamico guia_matriz_dinamica
 
-all: $(FILENAME).pdf
+all: $(FILES)
 
-$(FILENAME).pdf: $(FILENAME).tex
-	pdflatex $(FILENAME).tex
-	pdflatex $(FILENAME).tex
+%: %.tex
+	pdflatex $@.tex
+	pdflatex $@.tex
 	rm -f *.aux *.log *.out
 
 clean:

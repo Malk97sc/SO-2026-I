@@ -1,0 +1,137 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Matriz Dinámica}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Creación de una Matriz Dinámica}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{El reto: ¿Qué es una matriz dinámica?}
+En C, una matriz en el Stack se declara como \texttt{int mat[F][C]}. Pero si queremos que el tamaño sea dinámico, no podemos hacerlo de forma tan directa. Necesitamos usar un \textbf{puntero a punteros} (\texttt{int **}).
+
+\section{Estructura Mental}
+Imagina una matriz dinámica no como un bloque sólido, sino como:
+\begin{enumerate}
+    \item Un puntero principal (\texttt{int **matriz}).
+    \item Un arreglo de \textbf{punteros} (uno por cada fila).
+    \item Cada uno de esos punteros apunta a un arreglo de \textbf{enteros} (las columnas).
+\end{enumerate}
+
+\section{Dibujo Ilustrativo}
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, font=\small, >=Stealth]
+    \node[draw, fill=blue!10, minimum width=2.5cm, minimum height=1cm] (stack) at (0,3) {\texttt{int **matrix}};
+    \node[above=0.1cm of stack] {\textbf{STACK}};
+
+    \node[above=0.3cm] at (4,4.1) {\textbf{HEAP (Level 1)}};
+    \foreach \i in {0,1,2} {
+        \node[draw, fill=green!10, minimum width=2.8cm, inner sep=4pt] (rowptr\i) at (4, 3.8 - \i*0.7) {\texttt{matrix[\i]}};
+    }
+    \draw[very thick] (2.5, 4.1) rectangle (5.5, 1.7);
+
+    \node[above=0.3cm] at (9.1,4.1) {\textbf{HEAP (Level 2)}};
+    \foreach \r in {0,1,2} {
+        \foreach \c in {0,1,2} {
+            \node[draw, fill=yellow!10, minimum width=1cm] (data\r\c) at (8+\c*1.1, 3.8 - \r*0.7) {\small Data};
+        }
+    }
+
+    \draw[->, thick, blue] (stack.east) -- (rowptr0.west);
+    \draw[->, thick, red] (rowptr0.east) -- (data00.west);
+    \draw[->, thick, red] (rowptr1.east) -- (data10.west);
+    \draw[->, thick, red] (rowptr2.east) -- (data20.west);
+
+\end{tikzpicture}
+\end{center}
+\newpage
+
+\section{Cómo se construye (El Código)}
+Debemos hacer la reserva en \textbf{capas}. Primero las filas, luego cada fila individual.
+
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(){
+    int rows = 3, cols = 4;
+
+    // 1. Allocate the array of pointers (the rows)
+    int **matrix = (int **) malloc(rows * sizeof(int *));
+    if(!matrix){
+        printf("Error: Could not allocate memory.\n");
+        return 1;
+    }
+
+    // 2. For each row, allocate the array of data
+    for(int i=0; i < rows; i++){
+        matrix[i] = (int *) malloc(cols * sizeof(int));
+        if(!matrix[i]){
+            printf("Error: Could not allocate memory.\n");
+            return 1;
+        }
+    }
+
+    // 3. Normal usage: matrix[i][j]
+    matrix[1][2] = 50;
+    
+    // 4. FREE (In inverse order of creation)
+    for(int i=0; i < rows; i++){
+        free(matrix[i]); // First we free each row
+    }
+    free(matrix); // At the end the "parent" of all
+    
+    return 0;
+}
+\end{lstlisting}
+
+\section{Regla de Oro}
+Por cada \texttt{malloc} que hagas, debe existir un \texttt{free}.
+En una matriz de $N$ filas, haces $N+1$ allocations (\texttt{malloc}): una para el arreglo de punteros y $N$ para las filas datos. Por lo tanto, ¡necesitas $N+1$ llamadas a \texttt{free}!
+
+\section{Errores comunes}
+\begin{itemize}
+    \item \textbf{Liberar solo el padre:} Si haces \texttt{free(matriz)} sin liberar las filas primero, habrás perdido la dirección de las filas y esa memoria quedará "bloqueada" (Memory Leak).
+    \item \textbf{Confusión en sizeof:} En el primer \texttt{malloc} se usa \texttt{sizeof(int *)}, porque estamos guardando \textbf{punteros}. En el segundo se usa \texttt{sizeof(int)}, porque guardamos \textbf{enteros}.
+\end{itemize}
+
+\end{document}

@@ -6,7 +6,7 @@ Este repositorio contiene el material utilizado en las monitorías de la asignat
 
 El material está organizado en capítulos:
 
-- **[Chapter 0 - Introducción a los fundamentos del lenguaje C](capitulo_0/)**
+- **[Capítulo 0 - Introducción a los fundamentos del lenguaje C](capitulo_0/)**
 - **capitulo_1** — Por definir.
 - **capitulo_2** — Por definir.
 - **capitulo_3** —  Por definir.

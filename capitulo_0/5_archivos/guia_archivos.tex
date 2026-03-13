@@ -1,0 +1,137 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Archivos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Manejo de Archivos en C}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Los datos en memoria RAM son volátiles: desaparecen al apagar el equipo. En Sistemas Operativos, necesitamos persistencia para guardar configuraciones, logs o bases de datos. Para ello usamos archivos.
+
+\section{Idea Fundamental}
+Un archivo es un flujo (\textit{stream}) de datos almacenados en un dispositivo de almacenamiento. C maneja archivos mediante una estructura especial llamada \texttt{FILE}.
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+FILE *file_ptr = fopen("filename.txt", "mode");
+fclose(file_ptr);
+\end{lstlisting}
+
+\section{Modos de Apertura}
+El segundo argumento de \texttt{fopen} define qué podemos hacer con el archivo. Aquí los más comunes:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|l|c|c|}
+\hline
+\textbf{Modo} & \textbf{Descripción} & \textbf{¿Crea archivo?} & \textbf{¿Sobrescribe?} \\ \hline
+\texttt{``r''} & \textbf{Lectura:} El archivo debe existir. & No & No \\ \hline
+\texttt{``w''} & \textbf{Escritura:} Crea el archivo o lo vacía si existe. & \textbf{Sí} & \textbf{Sí} \\ \hline
+\texttt{``a''} & \textbf{Anexar:} Escribe al final del archivo. & \textbf{Sí} & No \\ \hline
+\texttt{``r+''} & \textbf{Lectura/Escritura:} El archivo debe existir. & No & No \\ \hline
+\texttt{``w+''} & \textbf{Lectura/Escritura:} Crea o sobrescribe. & \textbf{Sí} & \textbf{Sí} \\ \hline
+\texttt{``a+''} & \textbf{Lectura/Anexar:} Lee y escribe al final. & \textbf{Sí} & No \\ \hline
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{Modo Binario:} Si trabajas con archivos que no son de texto (imágenes, ejecutables), añade una \texttt{``b''} al modo (ej: \texttt{``rb''}, \texttt{``wb''}).
+\end{itemize}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int main() {
+    // Abrir para escribir (si existe, se borra el contenido anterior)
+    FILE *f = fopen("output.txt", "w");
+    if(f == NULL){
+        perror("Error opening file");
+        return 1;
+    }
+
+    fprintf(f, "Operating Systems 2026-I\n");
+    
+    fclose(f);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se declara un puntero de tipo \texttt{FILE}.
+    \item \texttt{fopen} abre el archivo. El modo \texttt{"w"} es para escritura (\textit{write}).
+    \item Se verifica que el archivo se haya abierto correctamente (\texttt{f != NULL}).
+    \item \texttt{fprintf} escribe datos en el archivo, similar a \texttt{printf}.
+    \item \texttt{fclose} cierra el flujo y asegura que los datos se guarden en el disco.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+El Sistema Operativo mantiene una tabla de descriptores de archivos para cada proceso. El puntero \texttt{FILE} apunta a una estructura que contiene el estado del flujo (posición actual, buffer, etc.).
+
+\section{Patrones comunes de uso}
+Lectura línea por línea:
+\begin{lstlisting}
+char buffer[100];
+while(fgets(buffer, 100, f) != NULL){
+    printf("%s", buffer);
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{No cerrar el archivo:} Puede causar pérdida de datos o agotar el límite de archivos abiertos del sistema operativo.
+    \item \textbf{Modos incorrectos:} Intentar escribir en un archivo abierto como \texttt{``r''} (lectura).
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Siempre verificar si \texttt{fopen} tuvo éxito (usar \texttt{perror} ayuda a debuguear).
+    \item Cerrar los archivos apenas se termine de usarlos.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate} 
+    \item Cree un programa que lea un archivo llamado \texttt{data.txt} e imprima cuántas líneas tiene.
+    \item Escriba un programa que pida el nombre del usuario y lo guarde en un archivo \texttt{config.log}.
+\end{enumerate}
+
+\end{document}

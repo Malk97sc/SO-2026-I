@@ -1,10 +1,10 @@
-FILENAME=guia_archivos
+FILES = guia_archivos.pdf guia_lectura_archivos.pdf
 
-all: $(FILENAME).pdf
+all: $(FILES)
 
-$(FILENAME).pdf: $(FILENAME).tex
-	pdflatex $(FILENAME).tex
-	pdflatex $(FILENAME).tex
+%.pdf: %.tex
+	pdflatex $<
+	pdflatex $<
 	rm -f *.aux *.log *.out
 
 clean:

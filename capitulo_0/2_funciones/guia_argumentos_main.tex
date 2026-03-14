@@ -1,0 +1,132 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Argumentos en main}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Argumentos de línea de comandos en C}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Muchos programas, especialmente en sistemas operativos Linux, no usan ventanas ni le piden al usuario que escriba texto interactivamente a lo largo de su ejecución. En su lugar, reciben las órdenes directamente al momento de ser ejecutados en la terminal, indicándoles qué archivo procesar o qué configuración usar. Para asimilar esos comandos iniciales, enviamos argumentos directamente a la función principal.
+
+\section{Idea Fundamental}
+La función \texttt{main} en C no tiene por qué estar vacía. Puede declararse para recibir el número de palabras que se escribieron en la terminal al momento de la ejecución, y un contenedor con cada una de esas palabras para ser analizadas dentro del programa.
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+int main(int argc, char **argv) {
+    // Cuerpo de la aplicacion
+    return 0;
+}
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int main(int argc, char **argv) {
+    printf("Total arguments: %d\n", argc);
+    
+    for (int i = 0; i < argc; i++) {
+        printf("Argument %d: %s\n", i, argv[i]);
+    }
+    
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+Si compilamos el código anterior en un ejecutable llamado \texttt{program} y lo ejecutamos en la terminal de la siguiente manera:
+\begin{lstlisting}[numbers=none]
+./program file.txt 42 hello
+\end{lstlisting}
+
+Dentro de nuestro programa, los valores se recibirán así:
+\begin{itemize}
+    \item \texttt{argc} valdrá \textbf{4} (el nombre del programa y los 3 argumentos adicionales).
+    \item \texttt{argv[0]} será \texttt{"./program"} (el comando con el que se invocó).
+    \item \texttt{argv[1]} será \texttt{"file.txt"}.
+    \item \texttt{argv[2]} será \texttt{"42"}.
+    \item \texttt{argv[3]} será \texttt{"hello"}.
+    \item \texttt{argv[4]} será \texttt{NULL} (por estándar, el vector termina de esta forma).
+\end{itemize}
+
+\section{Qué ocurre en memoria}
+Cuando se corre un programa desde la consola (ej: \texttt{./program -a hello}), el sistema operativo agrupa los valores introducidos. El entorno de ejecución inicializa el programa reservando un arreglo de punteros específico, donde cada puntero dirige a una de las cadenas de caracteres correspondientes. Seguidamente, este bloque base de memoria es inyectado al inicio del \texttt{Stack Frame} de la función \texttt{main}.
+
+\section{Patrones comunes de uso}
+Validando formato y ejecutando conversiones numéricas de las cadenas de entrada:
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        printf("Usage: %s <num1> <num2>\n", argv[0]);
+        return 1;
+    }
+    
+    int val_a = atoi(argv[1]);
+    int val_b = atoi(argv[2]);
+    
+    printf("Sum: %d\n", val_a + val_b);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{No chequear el tamaño de \texttt{argc}:} Tratar de acceder a valores como \texttt{argv[1]} sin comprobar primero que el usuario haya escrito suficientes elementos producirá un temido \texttt{Segmentation Fault}.
+    \item \textbf{Tratar \texttt{argv} como valores matemáticos puramente:} Obviar que son cadenas de texto y pretender sumar los contenidos de \texttt{char *}, sin usar previamente conversiones al estilo \texttt{atoi} o \texttt{strtol}.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Validar siempre \texttt{argc} de forma anticipada. Si los datos no están bien o no hay suficientes, terminar controladamente informando y educando al operador sobre cómo se debe invocar el archivo correctamente.
+    \item Nombrar explícitamente a los parámetros como \texttt{argc} y \texttt{argv}; esto es una convención inquebrantable de la cultura en C.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba un programa que reciba su nombre como parámetro de ejecución y lo salude. Si no le pasan un nombre, indíquele el caso al usuario.
+    \item Codifique una calculadora básica de comandos que procese tres argumentos: un primer número, un signo para la instrucción (\texttt{+}, \texttt{-}, \texttt{x}), y un segundo número, retornado al sistema el resultado.
+\end{enumerate}
+
+\end{document}

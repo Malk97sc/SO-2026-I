@@ -1,10 +1,10 @@
-FILENAME=guia_funciones
+FILES = guia_funciones.pdf guia_argumentos_main.pdf
 
-all: $(FILENAME).pdf
+all: $(FILES)
 
-$(FILENAME).pdf: $(FILENAME).tex
-	pdflatex $(FILENAME).tex
-	pdflatex $(FILENAME).tex
+%.pdf: %.tex
+	pdflatex $<
+	pdflatex $<
 	rm -f *.aux *.log *.out
 
 clean:

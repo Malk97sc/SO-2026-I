@@ -1,0 +1,187 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Lectura de Archivos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Funciones para Leer Archivos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Los datos dentro de un archivo de texto pueden estar distribuidos de diferentes maneras (caracteres repetidos, líneas de configuración, campos separados de datos), exigiendo distintas maneras especializadas que nos permitan importarlos con alta precisión en C.
+
+\section{Idea Fundamental}
+El lenguaje C nos ofrece herramientas nativas y funciones de alto nivel para extraer desde el final hacia el principio byte a byte (\texttt{fgetc}), extraer la redacción y cadenas masivas separadas por bloques de líneas (\texttt{fgets}), y la de encontrar variables bajo estrictos patrones predecibles ignorando espaciados en blanco (\texttt{fscanf}).
+
+\section{Sintaxis Básica}
+A continuación, una tabla comparativa con las principales funciones para extraer texto:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|p{4cm}|p{6.5cm}|}
+\hline
+\textbf{Función} & \textbf{¿Qué lee?} & \textbf{Caso de uso ideal} \\ \hline
+\texttt{fgetc} & Un solo carácter a la vez. & Contar letras específicas o parseo carácter por carácter. \\ \hline
+\texttt{fgets} & Una cadena de texto (línea) hasta un salto de línea o límite. & Leer líneas completas de forma segura en archivos de configuración o \textit{logs}. \\ \hline
+\texttt{fscanf} & Datos formateados con un patrón fijo, ignorando espacios en blanco. & Leer registros tabulares, bases de datos simples u organizar numéricos. \\ \hline
+\end{tabular}
+\end{center}
+
+\begin{lstlisting}[numbers=none]
+int char_read = fgetc(file_ptr);
+char *text_read = fgets(buffer, limited_size, file_ptr);
+int data_matched = fscanf(file_ptr, "%d %s", &int_var, str_var);
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+
+int main(int argc, char **argv){
+    if(argc < 2){
+        printf("Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
+    FILE *file = fopen(argv[1], "r");
+    if(file == NULL) return 1;
+
+    char buffer[100];
+    
+    if(fgets(buffer, sizeof(buffer), file) != NULL){
+        printf("Primera linea: %s", buffer);
+    }
+    
+    fclose(file);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Verificamos que el usuario haya proporcionado un nombre de archivo al ejecutar el programa.
+    \item Accedemos a la primera posición del vector de argumentos \texttt{argv[1]}.
+    \item Procedemos configurando el modo de ejecución llamando la apertura del puntero con modo lectura (\texttt{``r''}).
+    \item Ocupamos un tamaño límite en una variable estática tipo \texttt{char} en forma de contenedor \textit{buffer} local.
+    \item Para su primera y mínima prueba acudimos a la orden más sana \texttt{fgets}, condicionando a la función a utilizar un límite (\texttt{sizeof(buffer)}) garantizando que evite corromper otras regiones colindantes de la RAM.
+    \item Si obtuvo los datos con éxito, se carga automáticamente el resultado y tras la presentación se procede a la orden final \texttt{fclose}.
+\end{enumerate}
+
+\newpage
+
+\section{Qué ocurre en memoria}
+El sistema operativo, al inicializar los flujos abiertos de archivos, registra su propio \textit{file descriptor} manteniendo un apuntador al cursor interno. A medida que programamos las llamadas \texttt{fgetc}, \texttt{fgets} o \texttt{fscanf}, se encarga progresivamente de emular cómo el cursor transita los bytes internos en el disco subyacente. Acto seguido sincroniza el volcado parcial hacia a un contenedor local guardable de nuestro programa.
+
+\section{Patrones comunes de uso}
+\subsection{Lectura secuencial}
+Para recorrer dinámicamente el documento completo sin importar qué tan largo sea, usando nuestra bandera de fin \textit{EOF}:
+\begin{lstlisting}
+#include <stdio.h>
+
+int main(int argc, char **argv){
+    if(argc < 2){
+        printf("Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
+    FILE *file = fopen(argv[1], "r");
+    if (file == NULL) return 1;
+
+    int current_char;
+    while ((current_char = fgetc(file)) != EOF) {
+        printf("%c", (char)current_char);
+    }
+
+    fclose(file);
+    return 0;
+}
+\end{lstlisting}
+
+\newpage
+
+\section{Medir un archivo manipulando el cursor dinámicamente}
+Cuando no sabemos la cantidad de elementos o bytes totales que nos esperan dentro del archivo, requerimos manipular el cursor interno usando la función \texttt{fseek}. Esta función se apoya en anclas especiales como \texttt{SEEK\_END} (el final absoluto del archivo) y \texttt{SEEK\_SET} (el comienzo del mismo).
+
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char **argv){
+    if(argc < 2){
+        printf("Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
+    FILE *file = fopen(argv[1], "r");
+    if (file == NULL) return 1;
+
+    // 1. Movemos el cursor al extremo final del archivo
+    fseek(file, 0, SEEK_END);
+    
+    // 2. Averiguamos la posicion actual, que equivale al total de bytes 
+    long file_size = ftell(file);
+    printf("File size: %ld bytes\n", file_size);
+    
+    // 3. Regresamos el cursor al principio para reanudar la lectura
+    fseek(file, 0, SEEK_SET);
+    
+    // Aqui ya podriamos usar 'file_size' de forma segura 
+    // en un malloc para contener todos los datos a la vez si fuese util.
+
+    fclose(file);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{No interceptar el límite de archivo:} Llamar en extremo a lectura en bucles ciegos sin escuchar a las banderas \texttt{EOF} ni la negación de fin \texttt{NULL}, arriesgándose a comportamientos indefinidos de memoria, y basura al infinito.
+    \item \textbf{Asignar comodines dispares en \texttt{fscanf}:} Pretender recibir el texto dentro de variables declaradas como numéricas como apuntador de tipo \texttt{int}, y además, obviar el símbolo o sintaxis imperativa de referenciación (\texttt{\&}) en las variables comunes.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Siempre priorizar una carga basada en líneas con \texttt{fgets} en el parsing o búsqueda de configuraciones textuales (o \textit{log}), antes que utilizar un sistema vulnerable como pudiese serlo un simple \texttt{scanf} genérico.
+    \item Cotejar de nuevo como sistema defensivo la cantidad de conversiones resultantes dadas en respuesta directa de iterar la propia función \texttt{fscanf}. Ésta retornará siempre el idílico recuento de emparejamientos confirmados.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Genere una rutina en base a \texttt{fgetc} capaz de escanear letra por letra el contenido oculto en un archivo de texto misterioso, midiendo el porcentaje en el que la vocal 'A' se pronuncia respecto a todas.
+    \item Convoque una evaluación basada puramente con \texttt{fscanf} capaz de separar para diferentes estudiantes una línea de base de datos bajo el orden: \texttt{<Identificacion> <Curso> <Calificacion>}, culminando posteriormente sumariando a promedios según carreras.
+\end{enumerate}
+
+\end{document}

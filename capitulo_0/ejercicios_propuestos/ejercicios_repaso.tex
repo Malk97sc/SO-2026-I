@@ -1,0 +1,137 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 0: Ejercicios de Repaso}
+\cfoot{\thepage}
+
+\title{\textbf{Taller Práctico: Memoria y Archivos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+El siguiente taller tiene como objetivo integrar los conceptos fundamentales vistos en el Capítulo 0: paso de parámetros por línea de comandos, gestión de memoria dinámica y manipulación de archivos. Los problemas planteados requieren un análisis detallado de la estructura de datos y una gestión responsable de los recursos del sistema.
+
+\section*{\mbox{Problema 1: Generador Dinámico de Patrones de Marco}}
+Diseñe un programa que genere una matriz ``marco'' en memoria dinámica. El programa debe recibir por línea de comandos dos enteros positivos $N$ y $M$, y un carácter $C$.
+
+\textbf{Ejemplo de ejecución:} 
+\begin{lstlisting}[numbers=none]
+$ ./pattern_gen 5 5 #
+\end{lstlisting}
+
+\textbf{Ejemplo de salida:}
+\begin{lstlisting}[numbers=none]
+# # # # #
+# . . . #
+# . . . #
+# . . . #
+# # # # #
+\end{lstlisting}
+
+\textbf{Requerimientos:}
+\begin{enumerate}
+    \item El programa debe validar que se pasen los 3 argumentos necesarios.
+    \item Debe reservar memoria dinámica para una matriz de caracteres (\texttt{char **}) de tamaño $N \times M$.
+    \item Rellene los bordes de la matriz con el carácter $C$ y el interior con puntos (\texttt{.}).
+    \item Implemente una función \texttt{print\_matrix} y una función \texttt{free\_matrix} para gestionar la limpieza.
+    \item El programa debe imprimir la matriz en pantalla.
+    \item La matriz creada debe ser dinámica, es decir, debe poder aceptar cualquier valor de $N$ y $M$ e imprimir correctamente el patrón.
+\end{enumerate}
+
+\newpage
+
+\section*{\mbox{Problema 2: El Analizador de Bitácoras (Log Parser)}}
+Diseñe una herramienta que procese un archivo de texto con registros de eventos de un sistema. La primera fila del archivo contien un valor $n$ que nos dice la cantidad de elementos a leer. Cada línea del archivo representa un evento con el formato:
+
+\begin{lstlisting}[numbers=none]
+<ID_PROCESO> <TIMESTAMP> <CONSUMO_MEMORIA_MB>
+\end{lstlisting}
+
+\textbf{Ejemplo de comando:} 
+\begin{lstlisting}[numbers=none]
+$ ./log_parser input.txt 100
+\end{lstlisting}
+
+\textbf{Ejemplo de salida esperada (Consumo superior a 100 MB):} 
+\begin{lstlisting}[numbers=none]
+1024 1710432000 101.5
+1025 1710432001 120.0
+1026 1710432002 200.0
+\end{lstlisting}
+
+\textbf{Requerimientos:}
+\begin{enumerate}
+    \item Debe leer el archivo y almacenar los datos correctamente.
+    \item Debe usar \texttt{fscanf(file, "\%d \%f \%f", \&id, \&timestamp, \&memory\_consumption)} para leer los datos del archivo con el formato especificado.
+    \item Filtre y muestre solo los procesos cuyo consumo de memoria sea superior al umbral pasado por parámetro.
+    \item Cuente la cantidad de procesos que consumen más memoria que el umbral e imprima el resultado. 
+\end{enumerate}
+
+\newpage
+
+\section*{\mbox{Problema 3: Mini-Compresor de Texto RLE}}
+Implemente un programa que reciba como parametros un archivo $input.in$ y realice una compresión por longitud de caracteres (RLE - Run-Length Encoding).
+
+\textbf{Ejemplo de comando:}
+\begin{lstlisting}[numbers=none]
+$ ./rle_compress input.in
+\end{lstlisting}
+
+\textbf{Ejemplo visual de funcionamiento:}
+\begin{lstlisting}[numbers=none]
+Entrada (en archivo): AAAAABBBCC
+Salida (consola): 5A3B2C
+\end{lstlisting}
+
+\textbf{Requerimientos:}
+\begin{enumerate}
+    \item Cargue el contenido del archivo pasado como argumentos del main.
+    \item El programa debe validar que el archivo de entrada no esté vacío antes de proceder.
+    \item Almacene la cadena comprimida en un \textit{buffer}.
+    \item Imprima en pantalla el ``Ratio de Compresión'' (Tamaño Original / Tamaño Comprimido).
+    \item Libere correctamente la memoria dinámica utilizada.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item \textbf{Gestión de Memoria:} Uso correcto de \texttt{malloc/free} y ausencia de fugas.
+    \item \textbf{Robustez:} El programa no debe fallar si el archivo no existe o los argumentos son insuficientes.
+    \item \textbf{Claridad:} Código bien estructurado y documentado en lugares clave.
+\end{itemize}
+
+\end{document}

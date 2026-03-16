@@ -10,6 +10,8 @@
 \usepackage{enumitem}
 \usepackage{fancyhdr}
 \usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
@@ -48,6 +50,24 @@ En muchos programas necesitamos trabajar directamente con direcciones de memoria
 
 \section{Idea Fundamental}
 Un puntero es una \textbf{variable} que almacena la \textbf{dirección de memoria} de otra variable.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    % Variable x
+    \draw (0,0) rectangle (2,1) node[midway] (valx) {10};
+    \node[above] at (1,1) {\texttt{int x}};
+    \node[below, color=gray] at (1,0) {\texttt{0x100}};
+
+    % Variable p
+    \draw (5,0) rectangle (7,1) node[midway] (valp) {\texttt{0x100}};
+    \node[above] at (6,1) {\texttt{int *p}};
+    \node[below, color=gray] at (6,0) {\texttt{0x200}};
+
+    % Arrow
+    \draw[->, thick, red] (valp.west) -- (valx.east);
+    \node[red, font=\footnotesize] at (3.5, 0.7) {Apunta a \texttt{x}};
+\end{tikzpicture}
+\end{center}
 
 \section{Sintaxis Básica}
 La declaración de un puntero sigue el formato:
@@ -93,7 +113,25 @@ p & 0x200 & 0x100 \\ \hline
 \textbf{Explicación:} \texttt{p} almacena la dirección de \texttt{x}. Al usar \texttt{*p}, el procesador va a la dirección \texttt{0x100} y lee el valor allí almacenado.
 
 \section{Patrones comunes de uso}
-El uso más común de los punteros es el \textbf{Paso por Referencia} para modificar variables dentro de funciones:
+El uso más común de los punteros es el \textbf{Paso por Referencia} para modificar variables desde el interior de una función:
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    % Stack frame main
+    \draw[fill=blue!5] (0,0) rectangle (3,2);
+    \node at (1.5, 2.3) {\textbf{main()}};
+    \draw (0.5, 0.5) rectangle (2.5, 1.2) node[midway] (xmain) {\texttt{x = 10}};
+
+    % Stack frame funcion
+    \draw[fill=green!5] (6,0) rectangle (9,2);
+    \node at (7.5, 2.3) {\textbf{duplicar()}};
+    \draw (6.5, 0.5) rectangle (8.5, 1.2) node[midway] (nfunc) {\texttt{*n}};
+
+    % Arrow
+    \draw[->, thick, blue] (nfunc.west) -- (xmain.east) node[midway, above] {Acceso directo};
+\end{tikzpicture}
+\end{center}
+
 \begin{lstlisting}
 void duplicar(int *n){
     *n = (*n) * 2;

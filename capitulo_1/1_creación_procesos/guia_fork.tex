@@ -1,0 +1,157 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: fork()}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Creación de Procesos en POSIX}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+En un sistema operativo moderno, los programas no siempre corren de forma aislada. A menudo, un programa necesita delegar tareas a otro proceso para realizarlas en paralelo o de forma independiente. En Linux/POSIX, la forma fundamental de crear un nuevo flujo de ejecución es ``duplicando'' el proceso actual.
+
+\section{Idea Fundamental}
+La función \texttt{fork()} crea un nuevo proceso (Hijo) que es una \textbf{copia exacta} del proceso que lo llamó (Padre). Ambos procesos continúan ejecutándose desde el mismo punto exacto (el retorno de \texttt{fork()}).
+
+\section{Arquitectura de Ejecución}
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, font=\small, >=Stealth]
+    % Main flow
+    \node (start) [circle, draw, fill=blue!10] {A};
+    \node (fork) [draw, below=of start, minimum width=2.5cm] {\texttt{fork()}};
+    
+    % Parent flow
+    \node (parent_act) [draw, below=of fork, xshift=-1.5cm, minimum height=1cm] {Padre sigue...};
+    \node (wait) [draw, below=of parent_act, dashed] {\texttt{wait()}};
+    \node (parent_exit) [draw, below=of wait] {\texttt{exit()}};
+
+    % Child flow
+    \node (child_node) [circle, draw, right=3cm of parent_act, fill=green!10] {A};
+    \node (child_act) [draw, below=of child_node, minimum height=1cm] {Hijo sigue...};
+    \node (child_exit) [draw, below=of child_act] {\texttt{exit()}};
+
+    \draw[->, thick] (start) -- (fork);
+    \draw[->, thick] (fork) -- (parent_act);
+    \draw[->, thick] (fork) -- (child_node) node[pos=0.5, above right, font=\small\itshape] {Copia de Memoria};
+    \draw[->, thick] (child_node) -- (child_act);
+    \draw[->, thick] (parent_act) -- (wait);
+    \draw[->, thick] (child_act) -- (child_exit);
+    \draw[->, thick, dashed] (child_exit.west) -- (wait.east) node[midway, above, sloped, font=\small] {Estado};
+    \draw[->, thick] (wait) -- (parent_exit);
+
+    \node[left=0.5cm of start] {\textbf{Padre}};
+    \node[right=0.5cm of child_node] {\textbf{Hijo}};
+\end{tikzpicture}
+\end{center}
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+#include <unistd.h>
+#include <sys/types.h>
+
+pid_t pid = fork();
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid = fork();
+
+    if(pid < 0){
+        perror("fork failed");
+        return 1;
+    }else if(pid == 0){
+        printf("I am the child process!\n");
+    }else{
+        printf("I am the parent! My child's PID is %d\n", pid);
+    }
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item Se llama a \texttt{fork()}: el Sistema Operativo crea una copia del proceso.
+    \item \textbf{Valor de retorno:} Es la clave para diferenciar quién es quién.
+    \begin{itemize}
+        \item Al \textbf{Padre} se le devuelve el PID del hijo (un número $> 0$).
+        \item Al \textbf{Hijo} se le devuelve el valor \textbf{0}.
+        \item Si hay error, devuelve $-1$.
+    \end{itemize}
+    \item A partir de la línea 6, ambos procesos corren el mismo código pero con valores de \texttt{pid} diferentes.
+\end{enumerate}
+
+\section{Qué ocurre en memoria (COW)}
+Linux utiliza una técnica llamada \textbf{Copy-On-Write (COW)}. El proceso hijo comparte la misma memoria física que el padre hasta que alguno intenta \textbf{escribir} en ella. En ese instante, el Sistema Operativo duplica la página de memoria para que cada uno tenga su propia versión privada de los datos.
+
+\section{Patrones comunes de uso}
+El patrón \texttt{switch} es muy común cuando se tienen múltiples casos de error, hijo y padre:
+\begin{lstlisting}
+switch(fork()) {
+    case -1: perror("error"); exit(1);
+    case 0:  /* Codigo del hijo */ break;
+    default: /* Codigo del padre */ break;
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Bomba lógica:} Hacer un \texttt{fork()} dentro de un bucle infinito sin control puede agotar los recursos del sistema (Fork Bomb).
+    \item \textbf{Asumir orden:} El padre y el hijo corren de forma asíncrona. No puedes saber cuál imprimirá primero sin usar sincronización.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Siempre validar el retorno de \texttt{fork()}.
+    \item Usar el tipo de dato \texttt{pid\_t} (definido en \texttt{sys/types.h}) para manejar Identificadores de Proceso.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba un programa donde el hijo imprima los números del 1 al 5 y el padre los números del 6 al 10.
+    \item Investigue qué sucede si un proceso hijo intenta modificar una variable global declarada antes del \texttt{fork()}. ¿Se modifica también para el padre?
+\end{enumerate}
+
+\end{document}

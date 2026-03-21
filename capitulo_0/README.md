@@ -24,7 +24,11 @@ Introducción al heap y a la asignación manual de memoria.
 
 Persistencia de datos e interacción con el sistema de archivos.
 
-### 6. Prueba Diagnóstica
+### 6. Ejercicios Propuestos
+
+Una serie de ejercicios para practicar los conceptos vistos.
+
+### 7. Prueba Diagnóstica
 
 Una evaluación inicial para verificar la preparación para temas más avanzados.
 

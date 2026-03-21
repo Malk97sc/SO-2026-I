@@ -1,0 +1,195 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Jerarquía de Procesos}
+\cfoot{\thepage}
+
+\title{\textbf{Taller de Lógica: Jerarquía y Creación de Procesos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este taller se enfoca puramente en la lógica de creación y herencia de procesos mediante la llamada al sistema \texttt{fork()}. No se requiere sincronización ni comunicación avanzada; el objetivo es que el estudiante domine la visualización de estructuras complejas y el comportamiento de los procesos en bifurcación.
+
+\section*{Bloque 1: De Diagramas a Código}
+\textit{Desarrolle el código necesario para replicar exactamente las siguientes estructuras de jerarquía.}
+
+\subsection*{Ejercicio 1}
+Un proceso padre que genera exactamente 7 procesos hijos de forma paralela.
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (P) {};
+    \foreach \i in {1,...,7} {
+        \node (H\i) [below=of P, xshift=\i*1cm - 4cm] {};
+        \draw (P) -- (H\i);
+    }
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 2}
+Un proceso raíz con 3 hijos: el primero tiene 1 hijo, el segundo tiene 2 hijos y el tercero tiene 3 hijos.
+\begin{center}
+\begin{tikzpicture}[node distance=1.2cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    
+    % Level 1
+    \node (H1) [below left=of R, xshift=-1cm] {};
+    \node (H2) [below=of R] {};
+    \node (H3) [below right=of R, xshift=1cm] {};
+    \draw (R) -- (H1); \draw (R) -- (H2); \draw (R) -- (H3);
+    
+    % Level 2
+    \node (N1) [below=of H1] {}; \draw (H1) -- (N1);
+    
+    \node (N2a) [below left=of H2, xshift=0.8cm] {}; 
+    \node (N2b) [below right=of H2, xshift=-0.8cm] {};
+    \draw (H2) -- (N2a); \draw (H2) -- (N2b);
+    
+    \node (N3a) [below left=of H3, xshift=0.8cm] {};
+    \node (N3b) [below=of H3] {};
+    \node (N3c) [below right=of H3, xshift=-0.8cm] {};
+    \draw (H3) -- (N3a); \draw (H3) -- (N3b); \draw (H3) -- (N3c);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\subsection*{Ejercicio 3}
+Replique la jerarquía de la imagen: Un proceso raíz con 5 hijos, donde el tercer hijo crea a su vez 4 hijos. Los extremos de esta última generación (el primero y el cuarto) crean un proceso final cada uno.
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2pt, fill=black}, scale=0.8]
+    \node (R) {};
+    \foreach \i in {1,...,5} {
+        \node (H\i) [below=of R, xshift=\i*1.5cm - 4.5cm] {};
+        \draw (R) -- (H\i);
+    }
+    \foreach \j in {1,...,4} {
+        \node (N\j) [below=of H3, xshift=\j*1cm - 2.5cm] {};
+        \draw (H3) -- (N\j);
+    }
+    \node (B1) [below=of N1] {}; \draw (N1) -- (B1);
+    \node (B4) [below=of N4] {}; \draw (N4) -- (B4);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 4}
+Un padre con 2 hijos. Cada hijo crea 1 nieto, y cada nieto crea 1 bisnieto.
+\begin{center}
+\begin{tikzpicture}[node distance=0.8cm, every node/.style={draw, circle, inner sep=2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {}; \node (H2) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2);
+    \node (N1) [below=of H1] {}; \node (N2) [below=of H2] {};
+    \draw (H1) -- (N1); \draw (H2) -- (N2);
+    \node (B1) [below=of N1] {}; \node (B2) [below=of N2] {};
+    \draw (N1) -- (B1); \draw (N2) -- (B2);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 5}
+Desarrolle una función recursiva \texttt{void expandir(int n)} que genere un árbol binario perfecto de profundidad 3. Dibuje el árbol resultante e indique el número total de procesos.
+
+\newpage
+
+\section*{Bloque 2: De Código a Diagramas}
+\textit{Analice los siguientes fragmentos de código y dibuje el árbol de procesos resultante. Indique cuántos procesos totales se crearon (incluyendo al padre original).}
+
+\subsection*{Ejercicio 6}
+\begin{lstlisting}
+int n = 2;
+for(int i=0; i < n; i++) {
+    fork();
+    fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 7}
+\begin{lstlisting}
+if(fork() || fork()) {
+    fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 8}
+\begin{lstlisting}
+if(fork() && fork()) {
+    fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 9}
+\begin{lstlisting}
+pid_t p;
+p = fork();
+if(p != 0) {
+    fork();
+}
+fork();
+\end{lstlisting}
+
+\newpage
+
+\subsection*{Ejercicio 10}
+Analice qué sucede en este código y dibuje la jerarquía generada.
+\begin{lstlisting}
+void generar(int n) {
+    if(n <= 0) return;
+    if(fork() == 0) {
+        generar(n-1);
+    }
+    fork();
+}
+
+int main() {
+    generar(2);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 11}
+\begin{lstlisting}
+pid_t p;
+p = fork();
+if(p = 0) {
+    fork();
+}
+\end{lstlisting}
+
+\end{document}

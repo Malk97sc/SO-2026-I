@@ -1,0 +1,317 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Nivel Avanzado}
+\cfoot{\thepage}
+
+\title{\textbf{Taller de Lógica II: Escenarios Complejos de Creación de Procesos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este segundo taller desafía al estudiante con estructuras de jerarquía no convencionales, uso intensivo de operadores lógicos en bifurcaciones y algoritmos recursivos que generan procesos. Se asume un dominio total de la función \texttt{fork()} y su valo\section*{Bloque 1: De Diagramas a Código (Lógica y Estructura)}
+\textit{Desarrolle el código en C para replicar exactamente las jerarquías mostradas. Use algoritmos eficientes (bucles, condicionales) y evite repetir código innecesariamente.}
+
+\subsection*{Ejercicio 1}
+Un árbol binario perfecto de 3 niveles (Raíz, 2 hijos, 4 nietos).
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {}; \node (H2) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2);
+    \node (N1) [below left=of H1, xshift=0.3cm] {}; \node (N2) [below right=of H1, xshift=-0.3cm] {};
+    \draw (H1) -- (N1); \draw (H1) -- (N2);
+    \node (N3) [below left=of H2, xshift=0.3cm] {}; \node (N4) [below right=of H2, xshift=-0.3cm] {};
+    \draw (H2) -- (N3); \draw (H2) -- (N4);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 2: Bifurcación Asimétrica}
+Un proceso raíz que genera 3 hijos. El primero no tiene hijos, el segundo tiene 2 hijos y el tercero tiene 1 hijo.
+\begin{center}
+\begin{tikzpicture}[node distance=1.2cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {};
+    \node (H2) [below=of R] {};
+    \node (H3) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2); \draw (R) -- (H3);
+    \node (N2a) [below left=of H2, xshift=0.5cm] {}; \node (N2b) [below right=of H2, xshift=-0.5cm] {};
+    \draw (H2) -- (N2a); \draw (H2) -- (N2b);
+    \node (N3) [below=of H3] {}; \draw (H3) -- (N3);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 3: La Línea Intermitente}
+La raiz crea un proceso, este crea 3 procesos nuevos, y el de la posición impar crea dos procesos.
+\begin{center}
+\begin{tikzpicture}[node distance=0.8cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below=of R] {}; \draw (R) -- (H1);
+    \node (B1) [below left=of H1] {}; \draw (H1) -- (B1);
+    \node (B2) [below right=of H1] {}; \draw (H1) -- (B2);
+    \node (H2) [below=of H1] {}; \draw (H1) -- (H2);
+    \node (B3) [below left=of H2] {}; \draw (H2) -- (B3);
+    \node (B4) [below right=of H2] {}; \draw (H2) -- (B4);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 4}
+El proceso padre crea 4 hijos. Los hijos en posiciones pares crean 2 nietos cada uno, mientras que los hijos en posiciones impares crean solo 1 nieto.
+\begin{center}
+\begin{tikzpicture}[node distance=1.2cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \foreach \i in {0,1,2,3} {
+        \node (H\i) [below=of R, xshift=\i*2.2cm-3.3cm] {};
+        \draw (R) -- (H\i);
+    }
+    
+    \node (N0a) [below left=of H0, xshift=0.5cm] {};
+    \node (N0b) [below right=of H0, xshift=-0.5cm] {};
+    \draw (H0) -- (N0a); \draw (H0) -- (N0b);
+    
+    \node (N1) [below=of H1] {};
+    \draw (H1) -- (N1);
+    
+    \node (N2a) [below left=of H2, xshift=0.5cm] {};
+    \node (N2b) [below right=of H2, xshift=-0.5cm] {};
+    \draw (H2) -- (N2a); \draw (H2) -- (N2b);
+    
+    \node (N3) [below=of H3] {};
+    \draw (H3) -- (N3);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 5}
+El proceso raíz crea 2 hijos. El primer hijo crea 2 nietos, y cada uno de esos nietos crea un bisnieto. El segundo hijo permanece como hoja.
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {}; \node (H2) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2);
+    \node (N1) [below left=of H1, xshift=0.3cm] {}; \node (N2) [below right=of H1, xshift=-0.3cm] {};
+    \draw (H1) -- (N1); \draw (H1) -- (N2);
+    \node (B1) [below=of N1] {}; \node (B2) [below=of N2] {};
+    \draw (N1) -- (B1); \draw (N2) -- (B2);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 6}
+Se crean 3 ramas desde la raíz. La rama 1 tiene 3 procesos en serie. La rama 2 tiene 3 procesos en paralelo. La rama 3 es un proceso hoja.
+\begin{center}
+\begin{tikzpicture}[node distance=0.8cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R, xshift=-1cm] {}; \node (H2) [below=of R] {}; \node (H3) [below right=of R, xshift=1cm] {};
+    \draw (R) -- (H1); \draw (R) -- (H2); \draw (R) -- (H3);
+    % Rama 1: Serie
+    \node (N1) [below=of H1] {}; \node (B1) [below=of N1] {};
+    \draw (H1) -- (N1); \draw (N1) -- (B1);
+    % Rama 2: Paralelo
+    \node (N2a) [below left=of H2, xshift=0.3cm] {}; \node (N2b) [below=of H2] {}; \node (N2c) [below right=of H2, xshift=-0.3cm] {};
+    \draw (H2) -- (N2a); \draw (H2) -- (N2b); \draw (H2) -- (N2c);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 7}
+Escriba un programa donde el padre cree 4 hijos. El primer y el último hijo deben crear 2 nietos cada uno, los hijos del medio deben ser procesos hoja.
+\begin{center}
+\begin{tikzpicture}[node distance=1.2cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \foreach \i in {1,2,3,4} {
+        \node (H\i) [below=of R, xshift=\i*1.5cm-3.75cm] {};
+        \draw (R) -- (H\i);
+    }
+    \node (N1a) [below left=of H1, xshift=0.5cm] {}; \node (N1b) [below right=of H1, xshift=-0.5cm] {};
+    \draw (H1) -- (N1a); \draw (H1) -- (N1b);
+    \node (N4a) [below left=of H4, xshift=0.5cm] {}; \node (N4b) [below right=of H4, xshift=-0.5cm] {};
+    \draw (H4) -- (N4a); \draw (H4) -- (N4b);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 8}
+Replique una estructura donde el padre crea 2 hijos. Cada hijo crea 1 nieto, y el nieto del primer hijo crea a su vez 2 bisnietos.
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {}; \node (H2) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2);
+    \node (N1) [below=of H1] {}; \node (N2) [below=of H2] {};
+    \draw (H1) -- (N1); \draw (H2) -- (N2);
+    \node (B1a) [below left=of N1, xshift=0.5cm] {}; \node (B1b) [below right=of N1, xshift=-0.5cm] {};
+    \draw (N1) -- (B1a); \draw (N1) -- (B1b);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 9}
+El proceso raíz crea un hijo. Ese hijo crea 2 nietos, y cada uno de esos nietos crea 2 bisnietos.
+\begin{center}
+\begin{tikzpicture}[node distance=0.8cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H) [below=of R] {}; \draw (R) -- (H);
+    \node (N1) [below left=of H] {}; \node (N2) [below right=of H] {};
+    \draw (H) -- (N1); \draw (H) -- (N2);
+    \node (B1a) [below left=of N1, xshift=0.4cm] {}; \node (B1b) [below right=of N1, xshift=-0.4cm] {};
+    \draw (N1) -- (B1a); \draw (N1) -- (B1b);
+    \node (B2a) [below left=of N2, xshift=0.4cm] {}; \node (B2b) [below right=of N2, xshift=-0.4cm] {};
+    \draw (N2) -- (B2a); \draw (N2) -- (B2b);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 10}
+Un proceso raíz crea 2 hijos. Solo el segundo hijo crea 2 nietos, y solo el primer nieto de ese grupo crea 2 bisnietos.
+\begin{center}
+\begin{tikzpicture}[node distance=1cm, every node/.style={draw, circle, inner sep=2.2pt, fill=black}]
+    \node (R) {};
+    \node (H1) [below left=of R] {}; \node (H2) [below right=of R] {};
+    \draw (R) -- (H1); \draw (R) -- (H2);
+    \node (N2a) [below left=of H2, xshift=0.3cm] {}; \node (N2b) [below right=of H2, xshift=-0.3cm] {};
+    \draw (H2) -- (N2a); \draw (H2) -- (N2b);
+    \node (B1) [below left=of N2a, xshift=0.3cm] {}; \node (B2) [below right=of N2a, xshift=-0.3cm] {};
+    \draw (N2a) -- (B1); \draw (N2a) -- (B2);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section*{Bloque 2: Análisis de Código}
+\textit{Determine el número total de procesos creados y dibuje el árbol de jerarquía.}
+
+\subsection*{Ejercicio 11}
+\begin{lstlisting}
+for(int i = 0; i < 3; i++) {
+    if(i % 2 == 0) {
+        fork();
+    }
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 12}
+\begin{lstlisting}
+if(fork() == 0) {
+    fork();
+    if(!fork()) printf("A\n");
+} else {
+    fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 13}
+\begin{lstlisting}
+for(int i = 0; i < 2; i++) {
+    if(fork() != 0) {
+        fork();
+    }
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 14}
+\begin{lstlisting}
+if(fork() && fork()) {
+    if(!fork()) fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 15}
+\begin{lstlisting}
+for(int i = 0; i < 2; i++) {
+    fork();
+    if(i == 0) break;
+    fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 16}
+\begin{lstlisting}
+switch(fork()) {
+    case 0:
+        fork();
+        break;
+    default:
+        wait(NULL);
+        fork();
+        break;
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 17}
+\begin{lstlisting}
+if(fork() || fork()) {
+    if(fork() == 0) {
+        fork();
+    }
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 18}
+\begin{lstlisting}
+pid_t p = fork();
+if(p == 0) {
+    fork();
+} else {
+    if(fork() == 0) fork();
+}
+\end{lstlisting}
+
+\subsection*{Ejercicio 19}
+\begin{lstlisting}
+for(int i = 0; i < 2; i++) {
+    if(fork() == 0) {
+        fork();
+        break;
+    } else {
+        fork();
+    }
+}
+\end{lstlisting}
+
+\newpage
+\subsection*{Ejercicio 20}
+\begin{lstlisting}
+if(fork() == 0) {
+    for(int i = 0; i < 2; i++) {
+        fork();
+    }
+} else {
+    fork();
+}
+printf("Done\n");
+\end{lstlisting}
+
+\end{document}

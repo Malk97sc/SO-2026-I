@@ -1,0 +1,165 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Estados}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Procesos Huérfanos y Zombies}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+En la vida real, un fallecimiento requiere trámites legales para cerrar las cuentas de una persona. En Linux ocurre algo similar: cuando un proceso termina, no puede desaparecer por completo hasta que su padre reconozca su finalización. Entender estos ``cabos sueltos'' es vital para evitar fugas de recursos en el sistema.
+
+\section{Idea Fundamental}
+Existen dos situaciones anómalas en la jerarquía:
+\begin{itemize}
+    \item \textbf{Huérfano:} El padre terminó primero; el hijo sigue vivo y necesita un nuevo tutor.
+    \item \textbf{Zombie:} El hijo terminó; ya no consume CPU ni RAM, pero sigue ocupando una entrada en la tabla de procesos porque el padre no ha preguntado por su estado.
+\end{itemize}
+
+\section{Visualización de Estados}
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    % Zombie Case
+    \node[draw, ellipse, fill=red!10, minimum width=2.5cm] (zombie) at (0,0) {ZOMBIE};
+    \node[below=0.2cm of zombie, align=center] {Muerto pero no\\liberado de la tabla.};
+    
+    % Orphan Case
+    \node[draw, ellipse, fill=blue!10, minimum width=2.5cm] (orphan) at (5,0) {HUÉRFANO};
+    \node[below=0.2cm of orphan, align=center] {Padre murió;\\adoptado por \texttt{PID 1}.};
+
+    % Table illustration
+    \draw[thick] (-1.5, -2) rectangle (6.5, -3.5);
+    \node at (2.5, -1.8) {\textbf{Tabla de Procesos}};
+    \node at (0, -2.5) {\texttt{... [Z] ...}};
+    \node at (5, -3.0) {\texttt{... [R] ...}};
+\end{tikzpicture}
+\end{center}
+
+\section{Sintaxis Básica}
+No hay funciones para ``crear'' estados, ya que estos estados ocurren por el flujo del programa:
+\begin{lstlisting}[numbers=none]
+exit(status);  // Hijo muere -> Se vuelve Zombie hasta un wait()
+// El padre termina sin hacer wait() -> Hijo se vuelve Huerfano
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional (Zombie)}
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    if(fork() == 0){
+        printf("[HIJO] Terminando...\n");
+        exit(0); // El hijo muere
+    }
+    // El padre duerme y NO hace wait()
+    printf("[PADRE] Durmiendo sin esperar al hijo...\n");
+    sleep(10); 
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Explicación Paso a Paso}
+\begin{enumerate}
+    \item El hijo termina su ejecución inmediatamente.
+    \item Como el padre está en \texttt{sleep}, no llama a \texttt{wait()}.
+    \item Si revisas la terminal con \texttt{ps -l}, verás al proceso con estado \textbf{Z} o \textit{<defunct>}.
+    \item Cuando el padre termine (y con él el programa), el Zombie desaparecerá definitivamente.
+\end{enumerate}
+
+\section{Ejemplo Mínimo Funcional (Huérfano)}
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    if(fork() == 0){
+        printf("[HIJO] Mi padre es: %d\n", getppid());
+        printf("[HIJO] Durmiendo mientras el padre termina...\n");
+        sleep(5);
+        printf("[HIJO] Ahora mi padre es: %d (adoptado)\n", getppid());
+        exit(0);
+    }
+    // El padre termina de inmediato
+    printf("[PADRE] Terminando mi ejecucion...\n");
+    exit(0);
+}
+\end{lstlisting}
+
+\subsection{Explicación Paso a Paso}
+\begin{enumerate}
+    \item El padre termina su ejecución inmediatamente despues de crear el proceso hijo.
+    \item El hijo ve que su padre ha muerto, por lo que es adoptado por el proceso \texttt{init} (PID 1).
+    \item El hijo termina (y con él el programa), el Zombie desaparecerá definitivamente.
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+Cuando un proceso termina (\texttt{exit}), el SO libera sus recursos activos (código, datos, archivos). Sin embargo, reserva una pequeña estructura en la Tabla de Procesos que contiene el PID y el estado de salida. Esto se mantiene hasta que el padre ejecute un \texttt{wait()}. Si la tabla se llena de Zombies, el sistema no podrá crear nuevos procesos.
+
+\section{Patrones comunes de uso}
+Evitar Zombies es obligatorio mediante el uso de \texttt{wait()} o ignorando señales (revisar capítulo 2) \texttt{SIGCHLD}:
+\begin{lstlisting}
+#include <signal.h>
+signal(SIGCHLD, SIG_IGN); // Una forma de evitar que se formen zombies
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Confusión:} Creer que un Zombie consume memoria RAM (en realidad solo ocupa un espacio ínfimo en la tabla del Kernel).
+    \item \textbf{Miedo a los huerfanos:} Los huérfanos no son peligrosos, el SO (init) se encarga de ellos eficientemente.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Un proceso padre responsable siempre debe ``cosechar'' a sus hijos usando \texttt{wait()}.
+    \item Si un programa padre va a vivir mucho tiempo (un servidor), vigilar la creación de procesos hijos para no saturar la tabla.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Cree un proceso huérfano: haga que el padre imprima su PID y termine, mientras el hijo duerme y luego imprime su nuevo PPID.
+    \item Investigue el comando \texttt{top} o \texttt{ps aux}. ¿Cómo puede identificar gráficamente a un proceso zombie?
+\end{enumerate}
+
+\end{document}

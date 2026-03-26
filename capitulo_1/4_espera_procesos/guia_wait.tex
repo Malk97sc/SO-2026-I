@@ -1,0 +1,155 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Espera de Procesos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Espera de Procesos con wait() y waitpid()}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Por defecto, tras un \texttt{fork()}, el padre y el hijo corren en paralelo y no sabemos quién terminará primero. Sin embargo, en la mayoría de aplicaciones, el padre necesita esperar a que el hijo termine antes de proceder (por ejemplo, para procesar los datos que el hijo generó). Sin un mecanismo de espera, el programa sería un caos asíncrono.
+
+\section{Idea Fundamental}
+El Sistema Operativo nos provee de las funciones \texttt{wait} y \texttt{waitpid}. Estas permiten que un proceso padre se ``suspenda'' (pase a estado bloqueado) hasta que uno o varios de sus hijos terminen su ejecución o cambien de estado, permitiendo además recoger su valor de salida.
+
+\section{Flujo de Espera}
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    % Parent line
+    \draw[thick] (0,4) -- (0,3) node[midway, left] {Padre};
+    \draw[fill=blue!10] (-0.7, 2.5) rectangle (0.7, 3);
+    \node at (0, 2.75) {\texttt{wait()}};
+    
+    % Blocked state
+    \draw[thick, dashed, blue] (0,2.5) -- (0,0.5) node[midway, left] {Bloqueado (Espera)};
+    
+    % Child line
+    \draw[thick, green!50!black] (2,3.5) -- (2,0.5) node[midway, right] {Hijo ejecuta};
+    \node[draw, fill=red!10] (exit) at (2,0.5) {\texttt{exit()}};
+
+    % Resume
+    \draw[->, thick, blue] (exit.west) -- (0, 0.5) node[midway, above] {Estado};
+    \draw[thick] (0,0.5) -- (0,-0.5) node[below] {Padre despierta};
+
+    % Fork arrow
+    \draw[->, thick] (0,3.5) -- (2,3.5) node[midway, above] {\texttt{fork()}};
+\end{tikzpicture}
+\end{center}
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+#include <sys/wait.h>
+
+pid_t pid = wait(&status); //O simplemente wait(NULL) si no nos importa el estado de salida
+pid_t pid = waitpid(target_pid, &status, options);
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+int main() {
+    int status;
+    if (fork() == 0) {
+        printf("[HIJO] Trabajando...\n");
+        sleep(2);
+        return 42; // Estado de salida
+    } else {
+        printf("[PADRE] Esperando...\n");
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("[PADRE] El hijo termino con: %d\n", WEXITSTATUS(status));
+        }
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item El padre invoca \texttt{wait(\&status)}. Si el hijo aún no termina, el padre se ``duerme''.
+    \item El hijo termina con \texttt{return 42} (o \texttt{exit(42)}).
+    \item El Kernel despierta al padre y coloca la información del hijo en la variable \texttt{status}.
+    \item \textbf{Control de estados:} Para interpretar correctamente el valor de \texttt{status}, POSIX define macros fundamentales:
+    \begin{itemize}
+        \item \texttt{WIFEXITED(status)}: Verdadero si el hijo terminó normalmente.
+        \item \texttt{WEXITSTATUS(status)}: Retorna el código de salida real ($0-255$).
+        \item \texttt{WIFSIGNALED(status)}: Verdadero si el hijo murió por una señal (ej: \textit{Segfault}).
+        \item \texttt{WIFSTOPPED(status)}: Verdadero si el proceso hijo se ha detenido (\textit{Stopped}).
+        \item \texttt{WSTOPSIG(status)}: Retorna el número de la señal que causó que el proceso se detuviera.
+    \end{itemize}
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+El \texttt{wait} limpia la entrada del proceso hijo en la Tabla de Procesos (cosecha el Zombie). El valor de \texttt{status} es un entero que contiene bits específicos para el código de salida, señales de error y terminaciones forzosas.
+
+\section{Patrones comunes de uso}
+Esperar por un hijo específico ignorando a los demás:
+\begin{lstlisting}
+waitpid(child_pid, &status, 0);
+\end{lstlisting}
+Esperar sin bloquearse (modo no-bloqueante):
+\begin{lstlisting}
+waitpid(-1, &status, WNOHANG); // Retorna 0 si nadie ha terminado aun
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{Usar status directamente:} El valor de \texttt{status} no es el código de salida directamente; \textit{debe} pasarse por la macro \texttt{WEXITSTATUS}. No es necesario el uso de la macro, pero es recomendable.
+    \item \textbf{Wait sin hijos:} Llamar a \texttt{wait} cuando no hay hijos vivos devolverá $-1$.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item Utilizar \texttt{WIFEXITED} antes de \texttt{WEXITSTATUS} para asegurar que el hijo terminó normalmente y no por un error de memoria o señal.
+    \item Usar un bucle \texttt{while(wait(NULL) > 0)} para esperar a todos los hijos creados.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Cree dos procesos hijos. Use \texttt{wait()} para que el padre imprima ``Hijo terminado'' cada vez que uno de ellos finalice.
+    \item Implemente un programa donde el hijo provoque un error (ej: división por cero) e investigue qué macro de \texttt{wait} permite detectar que el hijo murió por una señal del sistema.
+\end{enumerate}
+
+\end{document}

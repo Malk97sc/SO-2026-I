@@ -50,7 +50,7 @@
 En este taller, consolidaremos el conocimiento sobre la creación de procesos mediante \texttt{fork()}. El objetivo es implementar un programa que divida el procesamiento de un archivo de datos entre múltiples hijos, utilizando archivos externos como mecanismo de persistencia y comunicación.
 
 \section*{Descripción del Problema: Auditoría de Almacenes}
-La multinacional IBM acaba de finalizar la auditoría anual de sus infraestructuras logísticas a nivel mundial. Tras recolectar los registros de cada sede, han consolidado el valor total de existencias en un archivo maestro denominado \texttt{input.txt}. Este archivo presenta un volumen de datos crítico: la primera línea indica el número total de registros $n$, seguida de $n$ valores enteros que representan el capital de cada almacén individual.
+La multinacional IBM acaba de finalizar la auditoría anual de sus infraestructuras logísticas a nivel mundial. Tras recolectar los registros de cada sede, han consolidado el valor total de existencias en un archivo maestro denominado \texttt{data.in}. Este archivo presenta un volumen de datos crítico: la primera línea indica el número total de registros $n$, seguida de $n$ valores enteros que representan el capital de cada almacén individual.
 
 \vspace{0.5cm}
 
@@ -72,7 +72,7 @@ Como junior developer, su misión es diseñar una herramienta que aproveche la a
     \node[process] (Padre) {Proceso Padre};
     \node[process] (H1) [below left=of Padre] {Proceso Hijo 1 \\ \textit{Suma Parte A}};
     \node[process] (H2) [below right=of Padre] {Proceso Hijo 2 \\ \textit{Suma Parte B}};
-    \node[file] (Input) [right=of Padre, xshift=1cm] {input.txt};
+    \node[file] (Input) [right=of Padre, xshift=1cm] {data.in};
     \node[file] (Output) [below=of Padre, yshift=-1.5cm] {out.txt};
 
     % Connections

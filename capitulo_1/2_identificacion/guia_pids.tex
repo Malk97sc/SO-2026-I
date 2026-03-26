@@ -1,0 +1,141 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Identificadores}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Identificadores de Proceso}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+En un sistema con cientos de procesos corriendo al mismo tiempo, el Sistema Operativo necesita una forma única de etiquetar y rastrear cada uno de ellos. Al igual que nosotros tenemos una identificación personal, cada proceso tiene un número único que permite enviarle señales, esperar por él o conocer quién lo creó.
+
+\section{Idea Fundamental}
+Todo proceso en POSIX tiene dos identificadores clave: su propio ID (\textbf{PID}) y el ID de su creador o padre (\textbf{PPID}). Estas ``etiquetas'' son números enteros de tipo \texttt{pid\_t}.
+
+\section{Jerarquía de Procesos}
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, font=\small, >=Stealth]
+    % Root/Init
+    \node (init) [draw, fill=gray!20, minimum width=3cm] {systemd / init (PID 1)};
+    
+    % Parent
+    \node (parent) [draw, fill=blue!10, below=of init, minimum width=3cm] {Proceso Padre};
+    \node[right=0.2cm of parent] {\texttt{PID: 1234, PPID: 1}};
+    
+    % Children
+    \node (child1) [draw, fill=green!10, below=of parent, xshift=-4cm, minimum width=2.5cm] {Hijo 1};
+    \node[below=0.1cm of child1, color=darkgray] {\texttt{PID: 1235, PPID: 1234}};
+    
+    \node (child2) [draw, fill=green!10, below=of parent, xshift=4cm, minimum width=2.5cm] {Hijo 2};
+    \node[below=0.1cm of child2, color=darkgray] {\texttt{PID: 1236, PPID: 1234}};
+
+    \draw[->, thick] (init) -- (parent);
+    \draw[->, thick] (parent) -- (child1);
+    \draw[->, thick] (parent) -- (child2);
+\end{tikzpicture}
+\end{center}
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+#include <unistd.h>
+#include <sys/types.h>
+
+pid_t my_pid = getpid();   // Obtiene el PID del proceso actual
+pid_t my_ppid = getppid(); // Obtiene el PID del proceso padre
+\end{lstlisting}
+
+\section{Ejemplo Mínimo Funcional}
+\begin{lstlisting}
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    printf("Self PID: %d\n", getpid());
+    printf("Parent PID: %d\n", getppid());
+
+    if(fork() == 0){
+      printf("[CHILD] PID: %d, PPID: %d\n", getpid(), getppid());
+    }else{
+      printf("[PARENT] PID: %d, PPID: %d\n", getpid(), getppid());
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\section{Explicación Paso a Paso}
+\begin{enumerate}
+    \item El programa inicia e imprime sus propios datos.
+    \item Se ejecuta \texttt{fork()} creando un hijo.
+    \item El hijo imprime su PID (nuevo) y su PPID (que será el PID del padre).
+    \item El padre imprime su PID y su PPID (posiblemente la \textit{shell} desde donde se ejecutó).
+\end{enumerate}
+
+\section{Qué ocurre en memoria}
+El Sistema Operativo mantiene una \textbf{Tabla de Procesos}. Cada entrada en esta tabla contiene el PID, PPID, estado de ejecución y otros metadatos (el PCB - Process Control Block). Las funciones \texttt{getpid} y \texttt{getppid} simplemente consultan esta tabla para el proceso que las llama.
+
+\section{Patrones comunes de uso}
+Rastreo de jerarquía para depuración:
+\begin{lstlisting}
+void log_context(char *msg) {
+    printf("[%s] PID: %d (PPID: %d)\n", msg, getpid(), getppid());
+}
+\end{lstlisting}
+
+\section{Errores Comunes}
+\begin{itemize}
+    \item \textbf{PPID = 1:} Si el padre termina antes que el hijo, el PPID del hijo cambiará automáticamente a 1 (adoptado por \textit{init}).
+    \item \textbf{Confusión con retornos:} No confundir el valor de retorno de \texttt{fork()} con el resultado de \texttt{getpid()}.
+\end{itemize}
+
+\section{Buenas Prácticas}
+\begin{itemize}
+    \item No hardcodear PIDs (ej: \texttt{kill(1234, ...)}); siempre obtenerlos dinámicamente.
+    \item Usar PIDs en los nombres de archivos temporales o \textit{logs} para evitar colisiones entre procesos.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba un programa que cree un hijo y un nieto. Cada uno debe imprimir su PID y el de su padre.
+    \item Verifique desde la terminal cuál es el PID de su Shell (\texttt{echo \$\$}) y compárelo con el PPID que reporta su programa al iniciar.
+\end{enumerate}
+
+\end{document}

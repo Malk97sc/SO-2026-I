@@ -1,4 +1,4 @@
-TARGETS = taller_procesos taller_procesos_2
+TARGETS = taller_procesos taller_procesos_2 taller_practico_sumador
 PDFS = $(addsuffix .pdf, $(TARGETS))
 
 all: $(PDFS)

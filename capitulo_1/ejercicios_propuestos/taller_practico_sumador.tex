@@ -1,0 +1,193 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Taller Práctico}
+\cfoot{\thepage}
+
+\title{\textbf{Taller Práctico: División de Tareas y Comunicación vía Archivos}}
+\author{Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+En este taller, consolidaremos el conocimiento sobre la creación de procesos mediante \texttt{fork()}. El objetivo es implementar un programa que divida el procesamiento de un archivo de datos entre múltiples hijos, utilizando archivos externos como mecanismo de persistencia y comunicación.
+
+\section*{Descripción del Problema: Auditoría de Almacenes}
+La multinacional IBM acaba de finalizar la auditoría anual de sus infraestructuras logísticas a nivel mundial. Tras recolectar los registros de cada sede, han consolidado el valor total de existencias en un archivo maestro denominado \texttt{input.txt}. Este archivo presenta un volumen de datos crítico: la primera línea indica el número total de registros $n$, seguida de $n$ valores enteros que representan el capital de cada almacén individual.
+
+\vspace{0.5cm}
+
+El departamento de ingeniería ha determinado que procesar esta información de forma puramente secuencial es inaceptable, ya que los tiempos de espera y el consumo monohilo de recursos retrasan la toma de decisiones corporativas. Por ello, se le ha otorgado acceso a las estaciones de trabajo de alto rendimiento con una consigna clara: paralelizar.
+
+\vspace{0.5cm}
+
+Como junior developer, su misión es diseñar una herramienta que aproveche la arquitectura del sistema mediante el uso de la llamada al sistema \texttt{fork()}. El objetivo es generar procesos asíncronos que compartan la carga de trabajo, sumen las secciones asignadas del inventario y retornen un resultado consolidado de forma ultraeficiente. El destino de la auditoría financiera está en sus manos; asegúrese de que la coordinación de estos procesos sea perfecta.
+
+\section*{Esquema del Laboratorio}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.8cm and 2.5cm,
+    process/.style={rectangle, draw, thick, rounded corners, fill=blue!5, minimum width=3.5cm, minimum height=1.2cm, align=center, font=\small\sffamily},
+    file/.style={cylinder, draw, thick, fill=orange!10, shape border rotate=90, minimum width=2cm, minimum height=1.5cm, aspect=0.4, font=\small\sffamily},
+    arrow/.style={-Stealth, thick, draw=black!70}
+]
+    % Nodes
+    \node[process] (Padre) {Proceso Padre};
+    \node[process] (H1) [below left=of Padre] {Proceso Hijo 1 \\ \textit{Suma Parte A}};
+    \node[process] (H2) [below right=of Padre] {Proceso Hijo 2 \\ \textit{Suma Parte B}};
+    \node[file] (Input) [right=of Padre, xshift=1cm] {input.txt};
+    \node[file] (Output) [below=of Padre, yshift=-1.5cm] {out.txt};
+
+    % Connections
+    \draw[arrow] (Input) -- node[above, font=\scriptsize] {Lectura inicial} (Padre);
+    \draw[arrow] (Padre) -- node[left, font=\scriptsize, xshift=-0.2cm] {fork()} (H1);
+    \draw[arrow] (Padre) -- node[right, font=\scriptsize, xshift=0.2cm] {fork()} (H2);
+    \draw[arrow] (H1) |- node[below left, pos=0.25, font=\scriptsize] {fprintf()} (Output);
+    \draw[arrow] (H2) |- node[below right, pos=0.25, font=\scriptsize] {fprintf()} (Output);
+    \draw[arrow] (Output.north) -- node[right, font=\scriptsize] {Consolidación total} (Padre.south);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Responsabilidades de los Procesos}
+Para que el flujo sea exitoso, cada proceso debe cumplir un rol específico:
+
+
+\subsection*{El proceso padre deberá:}
+\begin{enumerate}
+    \item Validar que el nombre del archivo de entrada sea pasado \textbf{obligatoriamente} como argumento por la línea de comandos (\texttt{argc} y \texttt{argv}).
+    \item Leer en un vector los datos del archivo de entrada indicado.
+    \item Estimar los índices (principio y fin) del vector sobre los cuales cada proceso hijo trabajará (usando un \textit{delta} o \textit{chunk}).
+    \item Crear los procesos hijos mediante \texttt{fork()}.
+    \item Esperar la terminación de los hijos mediante \texttt{wait()}.
+    \item Imprimir el resultado final consolidado.
+\end{enumerate}
+
+\subsection*{Los procesos hijos deberán:}
+\begin{enumerate}
+    \item Recorrer el vector en las posiciones indicadas por el padre.
+    \item Estimar la suma de las posiciones recorridas.
+    \item Escribir el resultado parcial en el archivo de salida \texttt{out.txt}.
+\end{enumerate}
+\newpage
+
+\section*{Gestión Crítica de Procesos}
+Para garantizar la robustez del sistema, debe prestar especial atención a:
+\begin{enumerate}
+    \item \textbf{Identificación:} Use condicionales para asegurar que los hijos solo ejecuten su tarea asignada y finalicen sin continuar la ejecución del código destinado al padre.
+    \item \textbf{Zombies y Huérfanos:} 
+    \begin{itemize}
+        \item El padre debe invocar \texttt{wait()} para recolectar el estado de finalización de sus hijos. No hacerlo generará procesos en estado \texttt{defunct} (zombies).
+    \end{itemize}
+\end{enumerate}
+
+\section*{Funciones de Apoyo}
+Se proporcionan las siguientes funciones para integrarlas en su desarrollo.
+
+\subsection*{Utilidad de Error}
+\begin{lstlisting}
+void error(char *msg) {
+    perror(msg);
+    exit(-1);
+}
+\end{lstlisting}
+
+\subsection*{Lectura de Datos}
+\begin{lstlisting}
+int read_numbers(const char *filename, int **vec) {
+    int c, number, totalNumbers;
+    FILE *infile = fopen(filename, "r");
+    if(!infile) error("Error opening input file");
+    
+    fscanf(infile, "%d", &totalNumbers);
+    *vec = (int *)calloc(totalNumbers, sizeof(int));
+    if(!*vec) error("Error allocating memory");
+    
+    for(c = 0; c < totalNumbers; c++){
+        if(fscanf(infile, "%d", &number) != EOF){
+            (*vec)[c] = number;
+            printf("%d\n", number); // Debug purposes
+        }
+    }
+    fclose(infile);
+    return c;
+}
+\end{lstlisting}
+
+\newpage
+
+\subsection*{Cálculo de Suma Final}
+\begin{lstlisting}
+int read_total() {
+    FILE *infile;
+    int sum_1 = 0, sum_2 = 0, total = 0;
+    infile = fopen("out.txt", "r");
+    if (!infile) error("Error opening output file for reading");
+    
+    fscanf(infile, "%d", &sum_1);
+    fscanf(infile, "%d", &sum_2);
+
+    total = sum_1 + sum_2;
+    
+    fclose(infile);
+    return total;
+}
+\end{lstlisting}
+
+\section*{Consideraciones Importantes}
+
+\subsection*{Comunicación y Paso por Referencia}
+La función \texttt{read\_numbers} recibe un puntero doble (\texttt{int **vec}) para permitir que los datos leídos sean accedidos por fuera de la función mediante \textit{paso por referencia}. Esto permite que la función reserve la memoria necesaria y el cambio persista en el \texttt{main}. 
+
+Debe invocarse haciendo uso del parámetro pasado por consola:
+\begin{lstlisting}
+int *vector;
+int total;
+
+// Suponiendo que el archivo es el primer argumento
+total = read_numbers(argv[1], &vector);
+\end{lstlisting}
+
+\subsection*{Limpieza del Entorno}
+Debido a que el esquema de comunicación está basado en archivos compartidos, es necesario que \textbf{antes de cada ejecución} se elimine el archivo \texttt{out.txt} para evitar leer valores de ejecuciones previas. Para esto, utilice la llamada al sistema \texttt{remove}:
+\begin{lstlisting}
+remove("out.txt");
+\end{lstlisting}
+
+\end{document}

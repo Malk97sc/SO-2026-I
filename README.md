@@ -1,18 +1,27 @@
-# Monitorías Sistemas Operativos 2026-I
+# Monitorías de Sistemas Operativos 2026-I
 
-Este repositorio contiene el material utilizado en las monitorías de la asignatura Sistemas Operativos durante el semestre **2026-I**. El objetivo es proporcionar guías prácticas y material de apoyo para reforzar los conceptos fundamentales necesarios para la asignatura, con especial énfasis en el lenguaje C y la programación de sistemas en entornos Linux/POSIX.
+Repositorio oficial con el material de apoyo, guías técnicas y ejemplos de código utilizados en las monitorías de la asignatura Sistemas Operativos durante el semestre 2026-I. El objetivo de este espacio es facilitar la comprensión de la programación de sistemas en entornos POSIX (Linux) utilizando el lenguaje C como herramienta principal.
 
 ## Estructura del Contenido
 
-El material está organizado en los siguientes capítulos:
+El repositorio está organizado por módulos temáticos que cubren desde los fundamentos de C hasta la sincronización avanzada de procesos.
 
-- **[Capítulo 0: Fundamentos de C](capitulo_0/)**: Repaso esencial de flujo de control, punteros, memoria dinámica y gestión de archivos.
-- **[Capítulo 1: Gestión de Procesos](capitulo_1/)**: Creación de procesos mediante fork(), jerarquías, identificadores y estados de los procesos.
-- **[Capítulo 2: Comunicación entre Procesos (IPC)](capitulo_2/)**: Mecanismos de comunicación como Señales, Tuberías (Pipes) y Memoria Compartida.
-- **[Capítulo 3: Hilos](capitulo_3/)**: Introducción a Pthreads, creación, finalización y paso de argumentos.
-- **[Capítulo 4: Sincronización de Procesos](capitulo_4/)**: Mutex y resolución de condiciones de carrera (en desarrollo).
-- **[Preparación](preparacion/)**: Espacio dedicado a la realización de pre-talleres y pre-parciales para integrar todos los conceptos.
+### Módulos Temáticos
+| Directorio | Título de Módulo | Descripción de Contenidos |
+| :--- | :--- | :--- |
+| **[Capítulo 0](capitulo_0/)** | **Fundamentos de C** | Control de flujo, punteros, memoria dinámica y gestión de archivos. |
+| **[Capítulo 1](capitulo_1/)** | **Gestión de Procesos** | Creación (`fork`), jerarquías de procesos, estados de procesos y sincronización con `wait`. |
+| **[Capítulo 2](capitulo_2/)** | **Comunicación (IPC)** | Mecanismos de señales, tuberías (`pipes`) y memoria compartida (`shm`). |
+| **[Capítulo 3](capitulo_3/)** | **Hilos (Pthreads)** | Concurrencia básica utilizando la librería POSIX Threads. |
+| **[Capítulo 4](capitulo_4/)** | **Sincronización** | Mutex, barreras y resolución de condiciones de carrera. |
+
+### Recursos Adicionales
+- **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" y "recetas" de código listos para adaptar a tus propios ejercicios.
+- **[Preparación](preparacion/)**: Carpeta central para simulacros de proyectos, talleres y preparación de exámenes parciales.
 
 ## Requisitos
+
 - Compilador GCC.
 - Entorno basado en Linux o compatible con POSIX.
+
+**Estado del Proyecto**: El repositorio se encuentra en constante actualización durante el transcurso del primer semestre de 2026.

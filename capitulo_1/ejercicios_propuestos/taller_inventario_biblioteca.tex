@@ -1,0 +1,90 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Gestión de Archivos Secuenciales}
+\cfoot{\thepage}
+
+\title{\textbf{Taller: Procesamiento de Inventario de Sedes Regionales}}
+\author{Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+El manejo eficiente de archivos es una habilidad fundamental para cualquier programador de sistemas. En este taller, implementará una herramienta que procese un inventario distribuido en múltiples archivos. El objetivo es leer un archivo índice que contiene los nombres de otros archivos de datos y procesar cada uno de forma secuencial.
+
+\section*{Descripción del Problema}
+Usted ha sido contratado por una cadena de librerías para consolidar su inventario nacional. Actualmente, la información se encuentra organizada de la siguiente manera:
+
+\subsection*{1. Archivo de Índice }
+El archivo \texttt{sedes.idx} es el archivo principal que lista todas las sedes activas. Su formato consiste en un entero inicial $N$ (número de sedes), seguido de $N$ nombres de archivos de datos correspondientes a cada sede.
+\begin{lstlisting}[title=Ejemplo de sedes.idx]
+3
+sede_norte.dat
+sede_sur.dat
+sede_centro.dat
+\end{lstlisting}
+
+\subsection*{2. Archivos de Sede}
+Cada archivo de sede contiene el detalle de sus libros. El formato de estos archivos es un entero $M$ (número de libros), seguido de $M$ líneas con el formato: \texttt{Titulo,Año,Paginas}.
+\begin{lstlisting}[title=Ejemplo de sede\_norte.dat]
+2
+Cien_años_de_soledad,1967,471
+El_Principito,1943,96
+\end{lstlisting}
+
+\section*{Objetivos del Taller}
+Su programa deberá realizar las siguientes tareas en orden estrictamente secuencial:
+
+\begin{enumerate}
+    \item Recibir el nombre del archivo índice por la línea de comandos (\texttt{argv[1]}).
+    \item Leer el archivo índice y cargar todos los nombres de los archivos de cada sede en un vector dinámico de strings.
+    \item Recorrer dicho vector y, para cada nombre de archivo:
+    \begin{itemize}
+        \item Abrir el archivo de la sede.
+        \item Leer cada registro de libro (usando \texttt{fscanf} o \texttt{fgets}).
+        \item Imprimir un resumen por consola indicando el nombre de la sede y el total de libros procesados.
+    \end{itemize}
+    \item Liberar toda la memoria dinámica utilizada antes de finalizar.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item Uso correcto de \texttt{malloc} y \texttt{free} para el manejo de strings.
+    \item Apertura y cierre adecuado de todos los descriptores de archivos.
+    \item Validación de argumentos de entrada.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,124 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 1: Procesamiento en Paralelo}
+\cfoot{\thepage}
+
+\title{\textbf{Taller: Procesamiento en Paralelo del Inventario}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este taller es una continuación directa del ejercicio de inventario de bibliotecas regionales. En esta etapa, el procesamiento ya no será puramente secuencial. Aplicaremos el concepto de creación de procesos mediante \texttt{fork()} para lograr que cada sede sea analizada simultáneamente por un proceso independiente, optimizando así la carga de trabajo del sistema.
+
+\section*{Descripción del Problema (Fase II)}
+La cadena de librerías ha solicitado un análisis cronológico de su inventario. El objetivo es que cada sede genere un reporte interno donde sus libros estén ordenados de forma ascendente según su año de publicación (desde el más antiguo hasta el más reciente).
+
+\section*{Esquema del Ejercicio}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.6cm and 1.8cm,
+    process/.style={rectangle, draw, thick, rounded corners, fill=blue!5, minimum width=3cm, minimum height=1cm, align=center, font=\small\sffamily},
+    file/.style={cylinder, draw, thick, fill=orange!10, shape border rotate=90, minimum width=1.8cm, minimum height=1.3cm, aspect=0.4, font=\small\sffamily},
+    arrow/.style={-Stealth, thick, draw=black!70}
+]
+    % Nodes
+    \node[process] (Padre) {Proceso Padre};
+    \node[file] (Idx) [right=of Padre, xshift=1cm] {sedes.idx};
+    
+    \node[process] (H1) [below left=of Padre, xshift=0.5cm] {Proceso Hijo 1};
+    \node[process] (H2) [below=of Padre] {\textbf{...}};
+    \node[process] (HN) [below right=of Padre, xshift=-0.5cm] {Proceso Hijo N};
+    
+    \node[file] (F1) [below=of H1] {sede\_1.dat};
+    \node[file] (FN) [below=of HN] {sede\_N.dat};
+
+    % Connections
+    \draw[arrow] (Idx) -- node[above, font=\scriptsize] {Lectura del índice} (Padre);
+    \draw[arrow] (Padre) -- node[left, font=\scriptsize, xshift=-0.1cm] {fork()} (H1);
+    \draw[arrow] (Padre) -- node[right, font=\scriptsize, xshift=-0.1cm] {fork()} (H2);
+    \draw[arrow] (Padre) -- node[right, font=\scriptsize, xshift=0.1cm] {fork()} (HN);
+    
+    \draw[arrow] (F1) -- node[left, font=\scriptsize] {Lectura} (H1);
+    \draw[arrow] (FN) -- node[right, font=\scriptsize] {Lectura} (HN);
+    
+    \node[below=of H2, yshift=0.5cm, font=\scriptsize\itshape, align=center] {Ordenamiento y\\Reporte Individual};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+Para ello, su programa deberá implementar la siguiente lógica:
+
+\subsection*{1. Proceso Padre}
+\begin{itemize}
+    \item Recibir y validar el nombre del archivo índice (\texttt{sedes.idx}) desde la línea de comandos.
+    \item Leer el archivo de índice para determinar el número total de sedes ($N$) y almacenar los nombres de sus archivos de datos.
+    \item Crear exactamente \textbf{$N$ procesos hijos}. Cada proceso hijo debe estar asociado a una sede específica según su orden de creación.
+    \item Esperar la finalización de todos los hijos antes de terminar su propia ejecución.
+\end{itemize}
+
+\subsection*{2. Procesos Hijos}
+Cada hijo, de forma independiente, deberá realizar lo siguiente:
+\begin{itemize}
+    \item Abrir el archivo \texttt{.dat} que le corresponde.
+    \item Almacenar la información de los libros en un vector dinámico de estructuras.
+    \item Ordenar los libros cronológicamente por año utilizando un algoritmo de ordenamiento.
+    \item Mostrar por consola la información de sus libros ordenados, indicando claramente a qué sede pertenecen.
+\end{itemize}
+
+\section*{Apoyo Técnico}
+
+\subsection*{Algoritmo de Ordenamiento}
+Para cumplir con el reporte cronológico solicitado, usted tiene total libertad para elegir el algoritmo de ordenamiento que considere más apropiado (ej. \textit{Bubble Sort}, \textit{Quicksort}). Lo fundamental es que el resultado final mostrado por consola sea correcto.
+
+\subsection*{Control de Identidad}
+A diferencia de los talleres anteriores donde solo había un hijo, aquí debe asegurar que el padre cree un bucle para generar los $N$ hijos, y que cada hijo sepa exactamente qué archivo procesar basándose en el índice de dicho bucle.
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item Correcta gestión de la jerarquía de procesos.
+    \item Uso apropiado de \texttt{wait()} para la sincronización.
+    \item Almacenamiento dinámico de la información mediante vectores de estructuras.
+    \item Ordenamiento cronológico preciso de los registros.
+\end{itemize}
+
+\end{document}

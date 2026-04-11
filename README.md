@@ -16,7 +16,7 @@ El repositorio está organizado por módulos temáticos que cubren desde los fun
 | **[Capítulo 4](capitulo_4/)** | **Sincronización** | Mutex, barreras y resolución de condiciones de carrera. |
 
 ### Recursos Adicionales
-- **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" y "recetas" de código listos para adaptar a tus propios ejercicios.
+- **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" de código listos para adaptar a tus propios ejercicios.
 - **[Preparación](preparacion/)**: Carpeta central para simulacros de proyectos, talleres y preparación de exámenes parciales.
 
 ## Requisitos

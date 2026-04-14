@@ -1,0 +1,206 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 2: Comunicación con Señales}
+\cfoot{\thepage}
+
+\title{\textbf{Taller de Lógica: Sincronización con Señales (IPC)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este taller se enfoca en la coordinación asíncrona de procesos mediante el uso de señales POSIX (\texttt{SIGUSR1}, \texttt{SIGUSR2}). El objetivo es controlar el orden de ejecución de una jerarquía de procesos para que sigan una secuencia.
+
+\section*{Bloque 1: De Diagramas a Código}
+\textit{Desarrolle el código necesario para replicar las siguientes estructuras y secuencias de señales. Todos los procesos deben imprimir su letra correspondiente al recibir o enviar el control.}
+
+\subsection*{Ejercicio 1}
+Replique la siguiente jerarquía. El flujo de señales debe iniciarse en el proceso raíz y viajar por las ramas de derecha a izquierda.
+
+\textbf{Secuencia sugerida:} \texttt{a-f-h-f-e-g-e-d-a}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm, 
+    every node/.style={draw, circle, inner sep=2pt, minimum size=0.6cm, fill=orange!20},
+    flow/.style={-Stealth, dashed, gray, thick}
+]
+    \node (a) {a};
+    \node (e) [below=of a] {e};
+    \node (f) [right=of e, xshift=1cm] {f};
+    \node (d) [left=of e, xshift=-1cm] {d};
+    
+    \node (h) [below=of f] {h};
+    \node (g) [below=of e] {g};
+
+    \draw (a) -- (d); \draw (a) -- (e); \draw (a) -- (f);
+    \draw (f) -- (h); \draw (e) -- (g);
+
+    \draw[flow] (a) to [bend left] (f);
+    \draw[flow] (f) to [bend left] (h);
+    \draw[flow] (h) to [bend left] (f);
+    \draw[flow] (f) to (e);
+    \draw[flow] (e) to [bend left] (g);
+    \draw[flow] (g) to [bend left] (e);
+    \draw[flow] (e) to (d);
+    \draw[flow] (d) to [bend left] (a);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\subsection*{Ejercicio 2}
+Diseñe un programa que emule el siguiente flujo en cascada. Note que cada rama debe completarse antes de pasar al hermano de la izquierda.
+
+\textbf{Secuencia sugerida:} \texttt{a-e-i-j-i-e-d-c-f-g-f-c-a}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm, 
+    every node/.style={draw, circle, inner sep=2pt, minimum size=0.6cm, fill=orange!20},
+    flow/.style={-Stealth, dashed, gray, thick}
+]
+    \node (a) {a};
+    \node (d) [below=of a] {d};
+    \node (e) [right=of d, xshift=1cm] {e};
+    \node (c) [left=of d, xshift=-1cm] {c};
+    
+    \node (i) [below=of e] {i};
+    \node (j) [below=of i] {j};
+    
+    \node (f) [below=of c] {f};
+    \node (g) [below=of f] {g};
+
+    \draw (a) -- (c); \draw (a) -- (d); \draw (a) -- (e);
+    \draw (e) -- (i); \draw (i) -- (j);
+    \draw (c) -- (f); \draw (f) -- (g);
+
+    \draw[flow] (a) to [bend left] (e);
+    \draw[flow] (e) to [bend left] (i);
+    \draw[flow] (i) to [bend left] (j);
+    \draw[flow, bend left] (j) to (i);
+    \draw[flow, bend left] (i) to (e);
+    \draw[flow] (e) to (d);
+    \draw[flow] (d) to (c);
+    \draw[flow] (c) to [bend left] (f);
+    \draw[flow] (f) to [bend left] (g);
+    \draw[flow, bend left] (g) to (f);
+    \draw[flow, bend left] (f) to (c);
+    \draw[flow] (c) to [bend left] (a);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 3: El Serpentín}
+Implemente la sincronización para una jerarquía combinada. El flujo debe descender completamente por las ramas de la derecha antes de saltar a los hermanos de la izquierda. Note que algunos hermanos deben coordinarse directamente.
+
+\textbf{Secuencia sugerida:} \texttt{a-f-k-f-e-d-i-d-c-b-g-b-a}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm, 
+    every node/.style={draw, circle, inner sep=2pt, minimum size=0.6cm, fill=orange!20},
+    flow/.style={-Stealth, dashed, gray, thick}
+]
+    \node (a) {a};
+    \node (d) [below=of a] {d};
+    \node (c) [left=of d, xshift=-0.5cm] {c};
+    \node (e) [right=of d, xshift=0.5cm] {e};
+    \node (b) [left=of c, xshift=-0.5cm] {b};
+    \node (f) [right=of e, xshift=0.5cm] {f};
+
+    \node (k) [below=of f] {k};
+    \node (i) [below=of d] {i};
+    \node (g) [below=of b] {g};
+
+    \draw (a) -- (b); \draw (a) -- (c); \draw (a) -- (d); \draw (a) -- (e); \draw (a) -- (f);
+    \draw (f) -- (k); \draw (d) -- (i); \draw (b) -- (g);
+
+    % Signal Lines
+    \draw[flow] (a) to [bend left] (f);
+    \draw[flow] (f) to [bend left] (k);
+    \draw[flow, bend left] (k) to (f);
+    \draw[flow] (f) to (e);
+    \draw[flow] (e) to (d);
+    \draw[flow] (d) to [bend left] (i);
+    \draw[flow, bend left] (i) to (d);
+    \draw[flow] (d) to (c);
+    \draw[flow] (c) to (b);
+    \draw[flow] (b) to [bend left] (g);
+    \draw[flow, bend left] (g) to (b);
+    \draw[flow] (b) to [bend left] (a);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section*{Bloque 2: Análisis de Código}
+\textit{Determine el orden de impresión de los siguientes fragmentos. Considere que el proceso padre siempre tiene el control inicial.}
+
+\subsection*{Ejercicio 4}
+Analice el siguiente código y determine la salida exacta por consola. Asuma que \texttt{fork()} tiene éxito y que el proceso padre siempre inicia la ejecución.
+
+\begin{lstlisting}
+void handler(int sig) { /* Despierta el proceso */ }
+
+int main(){
+    signal(SIGUSR1, handler);
+    pid_t p1, p2;
+    p1 = fork();
+    if(p1 == 0){
+        pause();
+        printf("H1\n");
+        kill(getppid(), SIGUSR1);
+        exit(0);
+    }
+    p2 = fork();
+    if(p2 == 0){
+        printf("H2\n");
+        kill(getppid(), SIGUSR1);
+        exit(0);
+    }
+    pause();
+    kill(p1, SIGUSR1);
+    pause();
+    printf("Padre\n");
+    return 0;
+}
+\end{lstlisting}
+
+\end{document}

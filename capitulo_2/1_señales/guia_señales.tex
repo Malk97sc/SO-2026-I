@@ -1,0 +1,180 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\date{\today}
+\rhead{Capítulo 2: Señales}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Señales en POSIX}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Las señales son notificaciones asíncronas enviadas a un proceso para informarle de un evento específico. Son el mecanismo de IPC más ligero y rápido, permitiendo interrumpir la ejecución normal del programa para atender situaciones críticas (como un error de memoria) o eventos externos (como una interrupción del usuario). Se rigen bajo el estándar \textbf{POSIX.1}.
+
+\section{Idea Fundamental}
+Una señal es un mensaje corto enviado por el kernel o por otro proceso. Cuando un proceso recibe una señal, el flujo de ejecución normal se interrumpe para ejecutar una acción específica.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth,
+    proc/.style={draw, thick, fill=blue!5, minimum width=2.5cm, minimum height=1.2cm, align=center},
+    kernel/.style={draw, thick, fill=orange!5, minimum width=3.5cm, minimum height=1cm, rounded corners=3pt, align=center},
+    mapping/.style={->, ultra thick, violet!70!black, shorten <=2pt, shorten >=2pt}]
+
+    % --- LAYER: User Space ---
+    \node[proc] (sender) at (-4, 3) {Proceso Emisor \\ \footnotesize (Contexto A)};
+    \node[proc] (receiver) at (4, 3) {Proceso Receptor \\ \footnotesize (Contexto B)};
+
+    % --- LAYER: Kernel Space ---
+    \draw[dashed, gray!40] (-6, 1.5) -- (6, 1.5) node[right, color=gray] {\footnotesize Kernel};
+    \node[kernel] (k) at (0, 0) {\textbf{Sistema Operativo} \\ \footnotesize (Gestión de Señales)};
+
+    % --- Signal Flow ---
+    % Sender to Kernel
+    \draw[mapping] (sender.south) .. controls (-4, 0.5) and (-2, 0) .. (k.west)
+        node[midway, left=3pt, font=\bfseries] {kill()};
+
+    % Kernel to Receiver
+    \draw[mapping] (k.east) .. controls (2, 0) and (4, 0.5) .. (receiver.south)
+        node[midway, right=3pt, font=\bfseries] {Entrega};
+
+    % Interrupt Symbol on Receiver
+    \draw[ultra thick, red!80!black, <-] (receiver.north) -- ++(0, 0.5) 
+        node[above, font=\bfseries\tiny] {INTERRUPCIÓN ASÍNCRONA};
+
+\end{tikzpicture}
+\end{center}
+
+Cuando un proceso recibe una señal, puede:
+\begin{itemize}
+    \item Ignorarla (excepto \texttt{SIGKILL} y \texttt{SIGSTOP}).
+    \item Ejecutar el manejador por defecto (ej: terminar el proceso).
+    \item Ejecutar una función personalizada (\texttt{signal\_handler}).
+\end{itemize}
+
+\newpage
+
+\section{Sintaxis Básica: Capturando Señales}
+Aunque existen dos formas de manejar señales, la función canónica es \texttt{signal()}.
+
+\begin{lstlisting}[numbers=none]
+#include <signal.h>
+typedef void (*handler_t)(int);
+sighandler_t signal(int signo, handler_t handler);
+void signal_handler(int sig); //función a ejecutar al recibir la señal
+\end{lstlisting}
+
+\paragraph{Descripción de los parámetros}
+\begin{itemize}
+    \item \textbf{signo:} El número o constante de la señal (ej: \texttt{SIGINT}).
+    \item \textbf{handler:} Un puntero a la función que se ejecutará (\textbf{handler}). También puede ser \texttt{SIG\_IGN} (ignorar) o \texttt{SIG\_DFL} (acción por defecto).
+\end{itemize}
+
+\section{Señales Comunes y Acciones}
+Cada señal tiene una acción por defecto definida por el kernel:
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{|l|c|l|l|}
+\hline
+\textbf{Señal} & \textbf{ID} & \textbf{Acción Defecto} & \textbf{Evento} \\ \hline
+\texttt{SIGINT} & 2 & Terminar (Interrupt) & Interrupción de teclado (Ctrl+C). \\ \hline
+\texttt{SIGKILL} & 9 & Terminar (Kill) & Ejecución forzosa (Ineludible). \\ \hline
+\texttt{SIGSEGV} & 11 & Terminar (Core Dump) & Fallo de segmentación (Memoria). \\ \hline
+\texttt{SIGTERM} & 15 & Terminar & Solicitud de terminación amable. \\ \hline
+\texttt{SIGCHLD} & 17 & Ignorar & Un proceso hijo ha terminado. \\ \hline
+\texttt{SIGUSR1} & 10 & Terminar & Señal de usuario 1 (Uso libre). \\ \hline
+\texttt{SIGUSR2} & 12 & Terminar & Señal de usuario 2 (Uso libre). \\ \hline
+\end{tabular}
+\end{table}
+
+\paragraph{Importancia de SIGUSR1 y SIGUSR2}
+Estas señales son fundamentales en el curso porque son las únicas reservadas explícitamente para que el programador defina su comportamiento. A diferencia de \texttt{SIGINT} o \texttt{SIGSEGV}, el kernel no les asigna un evento de hardware o de sistema específico; por lo tanto, son las herramientas perfectas para simular protocolos de comunicación personalizados entre procesos.
+
+\newpage
+
+\section{Ejemplo Mínimo: Capturando SIGINT (Ctrl+C)}
+\begin{lstlisting}
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+
+void signal_handler(int sig) {
+    printf("\nReceived signal %d. I won't die easily!\n", sig);
+}
+
+int main(){
+    signal(SIGINT, signal_handler);
+    printf("Process waiting for signals (PID: %d). Press Ctrl+C...\n", getpid());
+    while(1){
+        pause(); // Wait for a signal to arrive
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\section{Pro-Tip: Funciones Seguras (Reentrancia)}
+Un error común es usar \texttt{printf()} dentro de un manejador de señales. Técnicamente, \texttt{printf()} no es \textbf{async-signal-safe}; si el programa es interrumpido mientras \texttt{printf()} está ejecutándose, llamar a otro \texttt{printf()} puede causar un \textit{deadlock} o corrupción de buffers. En código de producción, se prefiere usar \texttt{write()}.
+
+\section{Enviando Señales: \texttt{kill()}}
+Para enviar una señal desde código C se utiliza la función \texttt{kill()}. Esta función permite enviar cualquier señal a otro proceso.
+
+\begin{lstlisting}[numbers=none]
+#include <sys/types.h>
+#include <signal.h>
+
+int kill(pid_t pid, int sig);
+\end{lstlisting}
+
+\paragraph{Descripción de los parámetros}
+\begin{itemize}
+    \item \textbf{pid:} El identificador del proceso al que se envía la señal.
+    \item \textbf{sig:} El número o constante de la señal (ej: \texttt{SIGUSR1}).
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item \textbf{El Contador}: Modifica el ejemplo para que el programa termine solo después de recibir \texttt{SIGINT} tres veces.
+    \item \textbf{Comunicación}: Crea un programa Padre que cree un Hijo. El hijo debe imprimir su PID y quedarse esperando. El padre debe enviar \texttt{SIGUSR1} al hijo después de 3 segundos usando \texttt{kill()}.
+    \item \textbf{Inmunidad}: Intenta capturar la señal \texttt{SIGKILL}. ¿Es posible? Justifica tu respuesta tras intentarlo.
+\end{enumerate}
+
+\end{document}

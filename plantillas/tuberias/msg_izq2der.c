@@ -1,4 +1,4 @@
-//P->H1->H2->..._N-1->P
+//P->H1->H2->...->N-1->P
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +12,7 @@
 void showtree();
 
 int main(int argc, char **argv){
-    if(argc < 2){
+    if(argc < 3){
         perror("Send the n_children and word\n");
         return EXIT_FAILURE;
     }
@@ -43,11 +43,11 @@ int main(int argc, char **argv){
 
         for(int i=0; i < n_pipes; i++){
             if(i != 0){
-                close(pipes[i][1]); //no escribe en otros
+                close(pipes[i][1]); 
             }
             
             if(i != n_pipes-1){
-                close(pipes[i][0]); //no lee de otros
+                close(pipes[i][0]);
             }
         }
 

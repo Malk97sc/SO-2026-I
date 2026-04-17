@@ -1,0 +1,139 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 2: Tuberías (Pipes)}
+\cfoot{\thepage}
+
+\title{\textbf{Taller de Lógica: Comunicación mediante Tuberías}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este taller se enfoca en el uso de tuberías anónimas (\texttt{pipe}) para el flujo de datos entre procesos. Se explorarán conceptos como la redirección de descriptores de archivos (\texttt{dup2}), la ejecución de comandos externos (\texttt{exec}) y la comunicación bidireccional.
+
+\section*{Bloque 1: Implementación de Tuberías Básicas}
+\textit{Utilice fork() y pipe() para implementar flujos de datos entre procesos y redireccionar la salida estándar si es necesario.}
+
+\subsection*{Ejercicio 1: Lectura Remota de Archivos}
+Este ejercicio simula un servidor de archivos básico. El proceso padre actúa como cliente y el hijo como servidor.
+\begin{enumerate}
+    \item El Padre envía el nombre de un archivo (ej: \texttt{"datos.txt"}) al hijo a través de una tubería.
+    \item El Hijo abre el archivo, lee su contenido y lo envía de vuelta al padre mediante una segunda tubería.
+    \item El Padre imprime en pantalla el contenido recibido.
+    \item \textbf{Reto:} El hijo debe enviar un mensaje de error si el archivo no existe.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, box/.style={draw, rectangle, minimum width=2.5cm, minimum height=1cm, fill=blue!10}]
+    \node[box] (P) {Padre (Cliente)};
+    \node[box] (H) [right=of P, xshift=3cm] {Hijo (Servidor)};
+    
+    \draw[-Stealth, bend left] (P) to node[above] {Nombre del archivo} (H);
+    \draw[-Stealth, bend left] (H) to node[below] {Contenido / Error} (P);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section*{Bloque 2: Comunicación de Datos Dinámicos}
+\textit{Desarrolle programas que intercambien información estructurada entre procesos.}
+
+\subsection*{Ejercicio 2: El Eco Bidireccional}
+Implemente una comunicación de "ida y vuelta" entre un padre y su hijo utilizando \textbf{dos tuberías}.
+\begin{enumerate}
+    \item El Padre lee una cadena por teclado y la envía por el \texttt{Pipe A}.
+    \item El Hijo recibe la cadena, la convierte a MAYÚSCULAS y la envía por el \texttt{Pipe B}.
+    \item El Padre recibe la respuesta y la imprime en pantalla.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, proc/.style={draw, circle, minimum size=1.5cm, fill=orange!20}]
+    \node[proc] (P) {Padre};
+    \node[proc] (H) [right=of P, xshift=3cm] {Hijo};
+
+    \draw[-Stealth, bend left] (P) to node[above] {Pipe A (Data)} (H);
+    \draw[-Stealth, bend left] (H) to node[below] {Pipe B (Response)} (P);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\subsection*{Ejercicio 3: El Recolector de Estadísticas}
+Un proceso padre crea $N$ procesos hijos. Cada hijo debe:
+\begin{enumerate}
+    \item Generar un número aleatorio entre 1 y 100.
+    \item Enviar dicho número al padre a través de una tubería \textbf{compartida} o una tubería por cada hijo.
+\end{enumerate}
+El padre debe esperar a que todos los hijos terminen, recibir los números y calcular el promedio, el máximo y el mínimo.
+
+\subsection*{Ejercicio 4: El Anillo de Procesos}
+Cree una estructura de anillo con 4 procesos (A $\rightarrow$ B $\rightarrow$ C $\rightarrow$ D $\rightarrow$ A).
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, proc/.style={draw, circle, minimum size=1cm, fill=green!10}]
+    \node[proc] (A) {A};
+    \node[proc] (B) [right=of A] {B};
+    \node[proc] (C) [below=of B] {C};
+    \node[proc] (D) [below=of A] {D};
+
+    \draw[-Stealth] (A) -- (B); \draw[-Stealth] (B) -- (C);
+    \draw[-Stealth] (C) -- (D); \draw[-Stealth] (D) -- (A);
+\end{tikzpicture}
+\end{center}
+Un "token" numérico debe viajar por el anillo. Cada proceso debe sumarle 1 al token y pasarlo al siguiente. El juego termina cuando el token da 5 vueltas completas al anillo.
+
+\section*{Bloque 4: Análisis de Código}
+\textit{Analice el fragmento y responda: ¿Por qué el programa se queda "colgado" (deadlock) y no termina?}
+
+\begin{lstlisting}
+int fd[2];
+pipe(fd);
+if (fork() == 0) {
+    char buf[10];
+    // El hijo no cierra nada
+    read(fd[0], buf, 10);
+    printf("Hijo leyo: %s\n", buf);
+    exit(0);
+}
+// El padre tampoco cierra fd[1] explicitamente antes de esperar
+write(fd[1], "Hola", 5);
+wait(NULL);
+\end{lstlisting}
+
+\end{document}

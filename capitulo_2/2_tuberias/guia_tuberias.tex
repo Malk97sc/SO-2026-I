@@ -1,0 +1,161 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.misc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 2: Tuberías (Pipes)}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Tuberías Unidireccionales (Pipes)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Gran parte del poder de la terminal de Linux reside en el operador \texttt{|}. Este permite conectar la salida de un proceso con la entrada de otro. Internamente, esto se logra mediante el mecanismo de \textbf{Pipes}.
+
+\section{Idea Fundamental}
+Un pipe es un buffer circular en el espacio del kernel que permite el flujo de datos en una sola dirección. Para que dos procesos se comuniquen mediante un pipe, deben tener un ancestro común que haya creado el pipe antes de realizar un \texttt{fork()}.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth,
+    proc/.style={draw, thick, fill=blue!5, minimum width=3cm, minimum height=1.5cm, align=center},
+    fd/.style={draw, thick, fill=yellow!20, inner sep=3pt, font=\scriptsize\ttfamily},
+    kernel/.style={draw, thick, fill=orange!5, minimum width=4.5cm, minimum height=1.2cm, rounded corners=3pt, align=center},
+    mapping/.style={->, ultra thick, violet!70!black, shorten <=2pt, shorten >=2pt}]
+
+    % --- LAYER: User Space ---
+    % Parent Process
+    \node[proc] (parent) at (-4, 4.5) {Parent Process \\ \footnotesize (Producer)};
+    \node[fd] (p_fd1) at (-4, 3.4) {fd[1] (Write End)};
+    \node[red!70!black, font=\tiny\bfseries, left=2pt of p_fd1] {close(fd[0])};
+
+    % Child Process
+    \node[proc] (child) at (4, 4.5) {Child Process \\ \footnotesize (Consumer)};
+    \node[fd] (c_fd0) at (4, 3.4) {fd[0] (Read End)};
+    \node[red!70!black, font=\tiny\bfseries, right=2pt of c_fd0] {close(fd[1])};
+
+    % --- LAYER: Kernel Space ---
+    \draw[dashed, gray!40] (-6, 2) -- (6, 2) node[right, color=gray] {\footnotesize Kernel Layer};
+    
+    % The Pipe Buffer
+    \node[kernel] (buffer) at (0, 0.6) {\textbf{Pipe Buffer} \\ \footnotesize (FIFO Queue)};
+    
+    % Access Ports
+    \node[draw, cyan!70!black, fill=cyan!5, thick, minimum size=0.6cm] (W) at (-1.8, 0.6) {W};
+    \node[draw, red!70!black, fill=red!5, thick, minimum size=0.6cm] (R) at (1.8, 0.6) {R};
+
+    % --- Connections ---
+    % Parent to Buffer
+    \draw[mapping] (p_fd1.south) to [bend right=35] node[midway, left=15pt, font=\bfseries] {write()} (W.west);
+    
+    % Buffer to Child
+    \draw[mapping] (R.east) to [bend right=35] node[midway, right=15pt, font=\bfseries] {read()} (c_fd0.south);
+
+    % Annotations
+    \node[below=0.2cm of buffer, font=\tiny\itshape, color=gray!80!black] {Data flows from Parent to Child through the kernel buffer};
+\end{tikzpicture}
+\end{center}
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[numbers=none]
+#include <unistd.h>
+int fd[2];
+pipe(fd); // Creates the pipe. 
+          // fd[0]: Read end
+          // fd[1]: Write end
+\end{lstlisting}
+
+\paragraph{Descripción de las operaciones}
+\begin{itemize}
+    \item \textbf{pipe(fd):} Crea un canal de comunicación y llena el arreglo \texttt{fd} con dos descriptores de archivo. Devuelve 0 en éxito y -1 en error.
+    \item \textbf{write(fd[1], buf, n):} Envía \texttt{n} bytes desde el buffer \texttt{buf} hacia el pipe. Si el pipe está lleno, el proceso se bloquea.
+    \item \textbf{read(fd[0], buf, n):} Lee hasta \texttt{n} bytes del pipe y los guarda en \texttt{buf}. Si el pipe está vacío, el proceso se bloquea hasta que haya datos.
+    \item \textbf{close(fd):} Cierra un extremo del pipe. Es \textbf{crítico} cerrar los extremos no utilizados en cada proceso para que \texttt{read()} pueda detectar el final del archivo (EOF) cuando todos los escritores cierren el pipe.
+\end{itemize}
+
+\section{Ejemplo: Comunicación Padre-Hijo}
+En este ejemplo, el padre envía un mensaje al hijo. Note cómo cada proceso cierra el extremo que no va a utilizar inmediatamente después del \texttt{fork()}.
+
+\begin{lstlisting}
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+
+int main() {
+    int fd[2];
+    char buffer[30];
+
+    if(pipe(fd) == -1){
+        perror("pipe");
+        return 1;
+    }
+
+    if(fork() > 0){ // Parent process
+        close(fd[0]); // Parent will not read, close read end
+        
+        char msg[] = "Message from your parent!";
+        write(fd[1], msg, strlen(msg) + 1);
+        
+        close(fd[1]); // Finished writing
+        wait(NULL);   // Wait for child to finish
+    }else{ // Child process
+        close(fd[1]); // Child will not write, close write end
+        
+        read(fd[0], buffer, sizeof(buffer));
+        printf("Child received: %s\n", buffer);
+        
+        close(fd[0]); // Finished reading
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\section{Conceptos Avanzados}
+\begin{itemize}
+    \item \textbf{Tuberías con nombre (FIFOs):} A diferencia de los pipes anónimos, los FIFOs tienen un nombre en el sistema de archivos y permiten la comunicación entre procesos sin parentesco.
+\end{itemize}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Modifique el ejemplo para que la comunicación sea bidireccional (\textbf{Full-Duplex}). ¿Cuántos pipes necesita?
+    \item Investigue qué sucede si un proceso escribe en un pipe cuyo extremo de lectura ha sido cerrado por todos los procesos (Señal \texttt{SIGPIPE}).
+\end{enumerate}
+
+\end{document}

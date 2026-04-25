@@ -1,0 +1,155 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 2: Memoria Compartida}
+\cfoot{\thepage}
+
+\title{\textbf{Taller de Lógica: Memoria Compartida (SHM)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+La memoria compartida permite que dos o más procesos accedan a una misma región de memoria RAM. Es el mecanismo de IPC más rápido, pero requiere de una cuidadosa sincronización para evitar condiciones de carrera. En este taller utilizaremos las funciones clásicas de System V (\texttt{shmget}, \texttt{shmat}, \texttt{shmdt}, \texttt{shmctl}).
+
+\section*{Bloque 1: Almacenamiento y Concurrencia Generalizada}
+
+\subsection*{Ejercicio 1: El Contador Incremental}
+Diseñe un programa donde un proceso padre reserve un segmento de memoria para un número entero inicializado en 0.
+\begin{enumerate}
+    \item El padre crea $K$ hijos (donde $K$ es un parámetro).
+    \item Cada hijo debe incrementar el contador en la memoria compartida $X$ veces (definido por el usuario) mediante un ciclo.
+    \item El padre debe esperar a que todos los hijos terminen e imprimir el valor final.
+    \item \textbf{Análisis:} Explique detalladamente por qué ocurren variaciones en el resultado final y cómo afecta el valor de $K$ a la probabilidad de error.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm]
+    \node[draw, fill=red!10, minimum width=3cm, minimum height=1cm] (shm) {SHM: \texttt{int contador}};
+    \node[draw, circle, fill=gray!10,above left=of shm] (h1) {Hijo 1};
+    \node[draw, circle, fill=gray!10,above right=of shm] (hk) {Hijo $k$};
+    \node at ($(h1)!0.5!(hk)$) {\Large \textbf{\dots}};
+    
+    \draw[->, thick] (h1) -- node[left] {count++} (shm);
+    \draw[->, thick] (hk) -- node[right] {count++} (shm);
+    \node[red, font=\bfseries] at (0,-1.2) {¡Zona de Conflicto!};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Ejercicio 2: Búsqueda en Matriz $N \times M$ desde Archivo}
+Implemente un sistema de búsqueda paralela cargando datos externos.
+\begin{enumerate}
+    \item El proceso raíz debe leer una matriz de dimensiones $N \times M$ desde un archivo de texto (\texttt{datos\_matriz.txt}). Los valores de $N$ y $M$ se encuentran en la primera línea del archivo.
+    \item El contenido de la matriz debe ser cargado íntegramente en un segmento de memoria compartida.
+    \item El padre crea $P$ procesos hijos. Cada hijo debe procesar un bloque equitativo de la matriz para buscar un número objetivo proporcionado por consola.
+    \item Si un hijo encuentra el número, debe escribir su \texttt{PID} y la posición (\texttt{fila, columna}) en un \textbf{segundo segmento de memoria compartida} destinado exclusivamente a registrar los hallazgos.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.5cm, box/.style={draw, minimum width=3.5cm, minimum height=1.2cm, align=center, thick}]
+    % Segmentos
+    \node[box, fill=cyan!10] (shmMat) {Segmento SHM 1:\\Matriz $N \times M$ (LECTURA)};
+    \node[box, fill=green!10, right=of shmMat, xshift=1.5cm] (shmRes) {Segmento SHM 2:\\Resultados (ESCRITURA)};
+    
+    % Procesos Hijos
+    \node[draw, circle, fill=gray!10, below=of shmMat, yshift=-1cm] (h1) {Hijo 1};
+    \node[draw, circle, fill=gray!10, below=of shmRes, yshift=-1cm] (hP) {Hijo $P$};
+    \node at ($(h1)!0.5!(hP)$) {\Large \textbf{\dots}};
+    
+    % Conexiones Hijo 1
+    \draw[->, >=stealth, blue, thick] (h1.north) -- node[left, pos=0.7] {Lee} (shmMat.south);
+    \draw[->, >=stealth, green!60!black, thick] (h1.north east) -- node[above, sloped, pos=0.3] {Escribe} (shmRes.south west);
+    
+    % Conexiones Hijo P
+    \draw[->, >=stealth, blue, thick] (hP.north west) -- node[above, sloped, pos=0.3] {Lee} (shmMat.south east);
+    \draw[->, >=stealth, green!60!black, thick] (hP.north) -- node[right, pos=0.7] {Escribe} (shmRes.south);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section*{Bloque 2: Sincronización Básica}
+
+\subsection*{Ejercicio 3: Protocolo Emisor/Receptor}
+Implemente un sistema de mensajería donde un proceso actúe como emisor y otro como receptor compartiendo una estructura en memoria. \textit{Nota: Use comillas simples para evitar conflictos de formato en el código.}
+\begin{enumerate}
+    \item La estructura en SHM debe contener un bloque de datos \texttt{char buffer[1024]} y una bandera de control \texttt{int estado}.
+    \item El proceso Emisor escribe un mensaje largo (leído por consola) y cambia \texttt{estado} a un valor específico (ej. 1).
+    \item El proceso Receptor debe detectar el cambio de \texttt{estado}, leer el mensaje y resetear la bandera. Repita el proceso hasta que se reciba la palabra 'FIN'.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[node distance=4cm, proc/.style={draw, circle, minimum size=1.5cm, fill=gray!10}]
+    \node[proc] (em) {Emisor};
+    \node[draw, rectangle, fill=yellow!10, minimum width=4cm, minimum height=1.8cm, right=of em] (shm) {
+        \begin{tabular}{|c|}
+            \hline
+            \texttt{char buffer[1024]} \\ \hline
+            \texttt{int estado} \\ \hline
+        \end{tabular}
+    };
+    \node[proc] (re) [right=of shm] {Receptor};
+
+    \draw[->, thick, blue] (em) -- node[above, sloped] {1. Escribir/Activar} (shm);
+    \draw[->, thick, orange] (shm) -- node[above, sloped] {2. Leer/Resetear} (re);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section*{Bloque 3: Procesamiento Masivo}
+
+\subsection*{Ejercicio 4: Filtro de Imagen de Dimensiones Variables}
+Diseñe un programa que aplique un ajuste de brillo a una "imagen" almacenada como matriz de píxeles (0-255).
+\begin{itemize}
+    \item La imagen de $N \times M$ píxeles se lee desde un archivo.
+    \item Se deben crear $P$ procesos trabajadores. Cada trabajador toma una franja horizontal o vertical de la imagen de forma dinámica.
+    \item Cada proceso suma un factor de corrección $C$ a cada píxel en su área asignada dentro del segmento SHM.
+    \item El proceso padre reconstruye y guarda el resultado final en \texttt{resultado\_procesado.txt}.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}
+    \draw[step=0.4cm,gray,very thin] (0,0) grid (2.4,1.6);
+    \draw[thick, red] (0,0.8) -- (2.4,0.8) node[right] {División Dinámica ($P$ franjas)};
+    \node[below] at (1.2,0) {Segmentación de Imagen $N \times M$ en SHM};
+\end{tikzpicture}
+\end{center}
+
+\end{document}

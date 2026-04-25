@@ -1,0 +1,95 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Pre-Taller: Memoria Compartida}
+\cfoot{\thepage}
+
+\title{\textbf{Pre-Taller: Tablero Concurrente de Sensores}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este ejercicio pone a prueba el manejo de memoria compartida (\texttt{SHM}) para la transferencia de información dinámica entre procesos independientes. Se busca entender cómo compartir estados globales en un espacio de memoria mapeado por el núcleo.
+
+\section*{Problema 1: Monitoreo Concurrente}
+Diseñe un programa concurrente que simule un tablero de control industrial. El programa debe recibir por argumento un número entero $\mathbf{N}$ que representa la cantidad de ciclos de actualización de cada sensor. El proceso padre (Monitor) debe crear el segmento de memoria compartida y luego disparar 3 procesos hijos (Sensores).
+
+Cada sensor escribirá sus lecturas aleatorias en su campo asignado de la SHM exactamente $N$ veces. El Monitor imprimirá el reporte del tablero en tiempo real y solo finalizará cuando todos sus obreros hayan completado sus ciclos.
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, font=\small, >=Stealth]
+    \node[draw, rectangle, fill=blue!10, minimum width=8cm, minimum height=1cm] (shm) {MEMORIA COMPARTIDA: \texttt{[S1 | S2 | S3]}};
+    
+    \node[draw, circle, fill=green!10, above=of shm, xshift=-3cm] (h1) {S1};
+    \node[draw, circle, fill=green!10, above=of shm] (h2) {S2};
+    \node[draw, circle, fill=green!10, above=of shm, xshift=3cm] (h3) {S3};
+    \node[draw, rectangle, fill=red!10, below=of shm] (padre) {MONITOR (Padre)};
+    
+    \draw[->, thick, dashed] (h1) -- (shm.north -| h1) node[midway, left] {Escribe ($N$)};
+    \draw[->, thick, dashed] (h2) -- (shm.north) node[midway, right] {Escribe ($N$)};
+    \draw[->, thick, dashed] (h3) -- (shm.north -| h3) node[midway, right] {Escribe ($N$)};
+    \draw[<-, thick, color=blue!70!black] (padre) -- (shm.south) node[midway, right] {Lectura};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Ejemplo de ejecución:} 
+\begin{lstlisting}[numbers=none]
+$ ./tablero_sensores 3
+[Monitor] Estado actual => S1: 45 | S2: 12 | S3: 89
+[Monitor] Estado actual => S1: 67 | S2: 12 | S3: 92
+[Monitor] Estado actual => S1: 67 | S2: 24 | S3: 15
+[Monitor] Ciclos finalizados, memoria liberada.
+\end{lstlisting}
+
+\section*{Requerimientos}
+\begin{enumerate}
+    \item Implementar correctamente \texttt{shmget}, \texttt{shmat} y la creación de procesos hijos.
+    \item El padre debe esperar la terminación de los procesos hijos utilizando \texttt{wait()} antes de cerrar y eliminar el segmento.
+    \item Los datos deben persistir únicamente en la RAM compartida del sistema.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item \textbf{Gestión de SHM:} Creación y destrucción de recursos.
+    \item \textbf{Sincronización:} Control de flujo y finalización segura de los ciclos.
+    \item \textbf{Validación:} Manejo de errores en las llamadas al sistema.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,83 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Pre-Taller: Señales}
+\cfoot{\thepage}
+
+\title{\textbf{Pre-Taller 1: Protocolo de Telemetría por Señales}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problema: Transmisión de Coordenadas de Rastreo (GPS)}
+Se requiere implementar un sistema de telemetría donde un proceso \textbf{hijo} simula ser un rastreador GPS y un proceso \textbf{padre} actúa como el servidor de monitoreo.
+
+El hijo debe leer un archivo de texto (\texttt{posiciones.txt}) que contiene pares de números enteros representando coordenadas cartesianas $(X, Y)$ por línea. Su misión es transmitir estas coordenadas al padre utilizando \textbf{únicamente señales}.
+
+\subsection*{Especificaciones del Protocolo}
+Dado que las señales no permiten pasar datos directamente, usted debe proponer e implementar un mecanismo de codificación. Algunas estrategias sugeridas son:
+\begin{itemize}
+    \item \textbf{Modulación por Ancho de Pulsos (Conteo):} Enviar $N$ señales para representar el valor de $X$, hacer el cambio de eje, y $M$ señales para $Y$.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[node distance=3cm, font=\small, >=Stealth]
+    \node[draw, rounded corners, fill=orange!10, minimum width=2.8cm, minimum height=1.2cm, align=center] (hijo) {HIJO \\ (Rastreador GPS)};
+    \node[draw, rounded corners, fill=cyan!10, minimum width=2.8cm, minimum height=1.2cm, align=center, right=5cm of hijo] (padre) {PADRE \\ (Servidor de Monitoreo)};
+    
+    \draw[->, thick, dashed] (hijo.east) -- node[midway, above] {Ráfagas de Señales} node[midway, below] {SIGUSR1 / SIGUSR2} (padre.west);
+\end{tikzpicture}
+\end{center}
+
+\textbf{Ejemplo de ejecución esperado:} 
+\begin{lstlisting}[numbers=none]
+$ ./gps_telemetria posiciones.txt
+[Padre] Servidor listo. Esperando datos del rastreador...
+[Padre] Coordenada recibida: X=12, Y=8
+[Padre] Coordenada recibida: X=45, Y=102
+[Padre] Fin de trayectoria detectado.
+\end{lstlisting}
+
+\section*{Requerimientos Técnicos}
+\begin{enumerate}
+    \item El hijo debe manejar los tiempos de envío cuidadosamente para evitar que el padre pierda señales.
+    \item Está estrictamente \textbf{prohibido} el uso de tuberías, archivos temporales o memoria compartida para el intercambio de las coordenadas.
+\end{enumerate}
+
+\end{document}

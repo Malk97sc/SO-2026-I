@@ -1,0 +1,90 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Pre-Taller: Tuberías}
+\cfoot{\thepage}
+
+\title{\textbf{Pre-Taller: El Anillo de Cifrado Distribuido}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este ejercicio pone a prueba la capacidad de sincronización de flujos continuos de datos utilizando tuberías POSIX (\texttt{pipes}). Se busca implementar un sistema modular donde cada proceso cumpla una función de transformación específica.
+
+\section*{Problema 1: Pipeline de Procesamiento}
+Diseñe un programa que implemente un circuito de cifrado en etapas. El proceso padre enviará un mensaje de texto plano a través de una primera tubería hacia su primer hijo. Este primer hijo (Etapa 1) aplicará un algoritmo de \textbf{Cifrado César} desplazando 3 posiciones las letras y enviará el resultado temporal al segundo hijo (Etapa 2), el cual desplazará las letras 2 posiciones adicionales antes de devolver la cadena cifrada final al padre.
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm and 2.5cm, font=\small, >=Stealth]
+    \node[draw, rectangle, fill=blue!10, minimum width=3cm] (padre) {PADRE};
+    
+    \node[draw, circle, fill=orange!20, right=of padre] (h1) {Etapa 1 (+3)};
+    \node[draw, circle, fill=orange!20, below=of h1] (h2) {Etapa 2 (+2)};
+    
+    \draw[->, thick, color=blue!70!black] (padre) -- (h1) node[midway, above] {Pipe A};
+    \draw[->, thick, color=red!70!black] (h1) -- (h2) node[midway, right] {Pipe B};
+    \draw[->, thick, color=green!60!black] (h2) -| (padre) node[pos=0.25, below] {Pipe C};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Ejemplo de ejecución:} 
+\begin{lstlisting}[numbers=none]
+$ ./anillo_cifrado "HOLA"
+[Padre] Mensaje original: HOLA
+[Hijo 1] Cifrando +3... (KROD)
+[Hijo 2] Cifrando +2... (MTPF)
+[Padre] Mensaje cifrado final: MTPF
+\end{lstlisting}
+
+\section*{Requerimientos}
+\begin{enumerate}
+    \item Establecer una jerarquía de procesos y un flujo unidireccional estricto entre ellos.
+    \item Cerrar de forma segura todos los descriptores de lectura/escritura sobrantes en cada proceso.
+    \item Implementar correctamente la rotación de caracteres para el cifrado solicitado.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item \textbf{Uso de IPC:} Manejo experto de tuberías y descriptores de archivo.
+    \item \textbf{Lógica:} Implementación correcta del algoritmo de sustitución.
+    \item \textbf{Robustez:} Limpieza de recursos y finalización controlada de procesos.
+\end{itemize}
+
+\end{document}

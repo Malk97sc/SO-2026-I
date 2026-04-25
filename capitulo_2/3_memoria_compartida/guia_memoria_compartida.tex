@@ -1,0 +1,174 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 2: Memoria Compartida}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Memoria Compartida (Shared Memory)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Cuando necesitamos transferir grandes volúmenes de datos entre procesos de manera ultra-rápida, los pipes son lentos porque implican copiar datos entre el espacio de usuario y el kernel. La \textbf{Memoria Compartida} permite que dos procesos mapeen la misma región de memoria física a su espacio de direcciones virtual.
+
+\section{Idea Fundamental}
+Normalmente, el kernel garantiza que un proceso no pueda acceder a la memoria de otro. La memoria compartida es una excepción controlada:
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth, 
+    process/.style={draw, thick, fill=blue!5, minimum width=2.5cm, minimum height=1.2cm, align=center},
+    vspace/.style={draw, thick, fill=yellow!20, minimum width=2.5cm, minimum height=0.5cm},
+    phys/.style={draw, thick, fill=green!15, minimum width=5cm, minimum height=1.2cm, rounded corners=3pt, align=center},
+    mapping/.style={<->, ultra thick, violet!80!black, shorten <=2pt, shorten >=2pt}]
+
+    % --- LAYER: User Space (Centered) ---
+    \node[process] (pA) at (-3.5, 4) {Proceso A \\ \footnotesize (Contexto 1)};
+    \node[vspace, anchor=north] (va1) at (pA.south) {Virtual Space};
+
+    \node[process] (pB) at (3.5, 4) {Proceso B \\ \footnotesize (Contexto 2)};
+    \node[vspace, anchor=north] (va2) at (pB.south) {Virtual Space};
+
+    % --- LAYER: Kernel Space ---
+    \draw[dashed, gray!40] (-6, 2) -- (6, 2) node[right, color=gray] {\footnotesize Kernel Layer};
+    
+    \node[phys] (ram) at (0, 0.5) {\textbf{Shared RAM Memory Block} \\ \footnotesize (Physical Address Space)};
+
+    % --- Connections (Refined Violet Mappings) ---
+    \draw[mapping] (va1.south) to [bend right=25] node[midway, left=5pt, font=\bfseries] {shmat()} (ram.160);
+    \draw[mapping] (va2.south) to [bend left=25] node[midway, right=5pt, font=\bfseries] {shmat()} (ram.20);
+
+    % Annotations
+    \node[below=0.2cm of ram, font=\tiny\itshape, color=gray!70!black] {Direct access via System V segment identifier};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}
+    \item Se crea un segmento de memoria en el kernel.
+    \item Cada proceso lo "mapea" (adjunta) a su propio espacio virtual.
+    \item Los procesos leen y escriben como si fuera memoria local normal.
+\end{enumerate}
+
+\newpage
+
+\section{Sintaxis (Estilo System V)}
+\begin{lstlisting}[numbers=none]
+#include <sys/shm.h>
+#include <sys/ipc.h>
+
+// 1. Get identifier (Create segment)
+int shmid = shmget(key, size, IPC_CREAT | 0666);
+
+// 2. Attach to process address space
+void *ptr = (void *)shmat(shmid, NULL, 0);
+
+// 3. Detach when finished
+shmdt(ptr);
+
+// 4. Control/Removal
+shmctl(shmid, IPC_RMID, NULL);
+\end{lstlisting}
+
+\paragraph{Descripción de las operaciones}
+
+\begin{itemize}
+    \item \textbf{shmget():} Crea u obtiene un segmento de memoria compartida identificado por una clave (\textit{key}). Devuelve un identificador del segmento (\textit{shmid}) que será utilizado en las operaciones posteriores.
+
+    \item \textbf{shmat():} Adjunta el segmento de memoria compartida al espacio de direcciones del proceso y devuelve un puntero que permite acceder a dicha memoria como si fuera memoria normal.
+
+    \item \textbf{shmdt():} Desvincula el segmento de memoria compartida del proceso una vez que este ha terminado de utilizarlo.
+
+    \item \textbf{shmctl():} Permite realizar operaciones de control sobre el segmento; comúnmente se usa con \texttt{IPC\_RMID} para marcar el segmento para su eliminación del sistema.
+\end{itemize}
+
+\newpage
+
+\section{Ejemplo: Contador Compartido}
+Este ejemplo muestra la creación de un segmento para un entero compartido que es modificado por un proceso padre y su hijo simultáneamente.
+
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+
+int main() {
+    int shmid, *counter;
+    int max_iter = 1000000;
+
+    // Create shared memory segment (System V)
+    shmid = shmget(IPC_PRIVATE, sizeof(int), 0666 | IPC_CREAT);
+    counter = (int *)shmat(shmid, NULL, 0);
+    *counter = 0;
+
+    if(fork()){ // Parent process
+        for(int i=0; i < max_iter; i++){
+            *counter = *counter + 1;
+        } 
+
+        wait(NULL);
+        printf("Final value of counter: %d\n", *counter);
+
+        shmdt(counter); // Detach from process address space
+        shmctl(shmid, IPC_RMID, NULL); // Remove shared memory segment
+        
+    }else{// Child process
+        for (int i = 0; i < max_iter; i++) *counter = *counter + 1;
+
+        shmdt(counter); // Detach from process address space
+    }
+
+    return EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+\section{Precaución: El Problema de la Carrera}
+La memoria compartida \textbf{no tiene sincronización automática}. Si ambos procesos escriben al mismo tiempo (como en el ejemplo anterior), el resultado final podría no ser el esperado debido a condiciones de carrera. Para esto necesitaremos algún mecanismo de sincronización.
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Ejecute el ejemplo del contador varias veces. ¿Por qué el resultado varía o no llega al valor esperado?
+    \item Investigue la diferencia entre \texttt{IPC\_PRIVATE} y usar una clave generada por \texttt{ftok()}.
+    \item Investigue el comando \texttt{ipcs -m} en Linux.
+\end{enumerate}
+
+\end{document}

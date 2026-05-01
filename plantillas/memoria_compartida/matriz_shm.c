@@ -45,7 +45,7 @@ int main(int argc, char **argv){
 void create_shm(int *shm_id, void **mtx, int rows, int cols, size_t size_elements){
     size_t size_mtx;
 
-    size_mtx = sizeof_dm(rows, cols, sizeof(size_elements));
+    size_mtx = sizeof_dm(rows, cols, size_elements);
     *shm_id = shmget(IPC_PRIVATE, size_mtx, 0666 | IPC_CREAT);
     if(*shm_id == -1){
         perror("Fail shmget");

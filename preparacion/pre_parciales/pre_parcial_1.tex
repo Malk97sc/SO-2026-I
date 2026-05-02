@@ -1,0 +1,130 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, provide=*]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Examen: Pre-Parcial 1}
+\cfoot{\thepage}
+
+\title{\textbf{Examen Pre-Parcial 1: Auditoría Financiera}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este pre-parcial evalúa la implementación de una arquitectura de procesamiento concurrente mediante el uso coordinado de procesos especializados, memoria compartida y tuberías de comunicación.
+
+\section*{\textbf{Detección de Fraude a Gran Escala}}
+
+Usted debe diseñar un sistema de auditoría capaz de procesar transacciones bancarias mediante una cadena de producción compuesta por procesos hijos especializados. El sistema debe operar bajo restricciones de hardware que prohíben la carga total del archivo en memoria, obligando a un flujo guiado por bloques de tamaño $B$.
+
+\vspace{0.5cm}
+El sistema cuenta con un proceso hijo cuya única función es la gestión de entrada/salida (el Lector). Es el único componente con permiso para abrir y leer el archivo de datos, encargándose de cargar secuencialmente los bloques en un segmento de memoria compartida.
+\vspace{0.5cm}
+
+Tres procesos hijos (los Analistas) deben inspeccionar de forma simultánea el bloque alojado en la memoria compartida. Cada uno de estos analistas tiene asignada la evaluación de criterios de riesgo específicos: el primero analiza el monto, el segundo evalúa la frecuencia e intentos fallidos, y el tercero verifica el riesgo del país. Al encontrar una coincidencia, cada analista remite el identificador de la transacción hacia el proceso padre a través de tuberías.
+
+\vspace{0.5cm}
+El proceso padre actúa como supervisor y consolidador final. Su responsabilidad inicial es la creación de la jerarquía y la inicialización de los recursos. Una vez que los procesos hijos reportan hallazgos, el padre recolecta esta información de las tuberías, realiza la suma de incidencias por usuario y, al finalizar todo el archivo, imprime los resultados finales en pantalla.
+
+\newpage
+
+\section*{Ciclo de procesamiento}
+El procesamiento ocurre de forma iterativa y coordinada mediante espera activa. Para cada bloque, el Lector llena el segmento de memoria compartida y debe actualizar un indicador de estado (flag) alojado en la misma memoria para notificar a los tres Analistas que los datos han sido cargados. Los Analistas deben monitorear continuamente este indicador antes de proceder con el análisis paralelo de forma asíncrona.
+
+\vspace{0.5cm}
+
+Una vez que los analistas terminan de revisar el bloque actual, deben notificarlo (usando el mismo mecanismo de indicadores en SHM) para que el Lector pueda cargar el siguiente bloque. El Lector es responsable de detectar el final del archivo y propagar esta condición para que el sistema finalice su ejecución de forma ordenada, permitiendo al padre imprimir el informe final y liberar los recursos de IPC.
+
+\subsection*{Reglas de Fraude}
+Una transacción es sospechosa si cumple al menos dos condiciones:
+\begin{itemize}[noitemsep]
+    \item Monto $\ge$ 10.000
+    \item Transacciones en la última hora $\ge$ 15
+    \item Nivel de riesgo del país $\ge$ 80
+    \item Intentos fallidos de autenticación $\ge$ 3
+\end{itemize}
+
+Un usuario es fraudulento si acumula más de 4 transacciones sospechosas.
+
+\section*{Entrada}
+El archivo contiene únicamente enteros. La primera línea contiene $B$ y $N$, donde $B$ es el tamaño del bloque ($1 \le B \le 100$) y $N$ es la cantidad total de transacciones. Luego siguen $N$ registros con el siguiente formato:
+
+\begin{center}
+    \texttt{transaction\_id | user\_id | amount | trans\_last\_hour | country\_risk | failed\_attempts | device\_type}
+\end{center}
+
+\texttt{transaction\_id} identifica la operación, \texttt{user\_id} al cliente ($0 \le id \le 10000$), y los campos siguientes representan los valores para la evaluación de riesgo. El campo \texttt{device\_type} indica el origen (1: móvil, 2: web, 3: API).
+
+\vspace{0.4cm}
+
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+Ejemplo de entrada
+\begin{lstlisting}[numbers=none, frame=single, backgroundcolor=\color{white}]
+5 12
+1 10 12000 20 90 4 3
+2 15 500 2 10 0 1
+3 10 15000 18 85 5 2
+4 20 7000 25 95 1 3
+...
+\end{lstlisting}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+Salida esperada
+\begin{lstlisting}[numbers=none, frame=single, backgroundcolor=\color{white}]
+USUARIOS FRAUDULENTOS
+user_id total_sospechosas
+user_id total_sospechosas
+...
+
+TOTAL FRAUDULENTOS: X
+TOTAL SOSPECHOSOS: Y
+\end{lstlisting}
+\end{minipage}
+
+\section*{Requerimientos Técnicos}
+\begin{itemize}
+    \item Implementar el sistema mediante fork() aplicando la especialización de roles (Padre Consolidador, Hijo Lector, Hijos Analistas).
+    \item Utilizar memoria compartida System V para el intercambio de datos y el control mediante indicadores de estado.
+    \item Emplear tuberías (pipes) para la comunicación de hallazgos desde los Analistas hacia el proceso Padre.
+    \item Sincronizar el flujo del ciclo impulsado por espera activa para evitar colisiones en el procesamiento por bloques.
+    \item Garantizar la correcta liberación de todos los recursos de IPC y el cierre de descriptores al finalizar.
+\end{itemize}
+
+\end{document}

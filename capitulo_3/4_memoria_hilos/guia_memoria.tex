@@ -1,0 +1,122 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 3: Memoria en Hilos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Modelo de Memoria en Hilos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Compartir vs Aislar}
+A diferencia de los procesos (donde cada uno tiene su "isla" privada de memoria), los hilos viven en una casa compartida. Entender qué es privado y qué es público es vital para evitar errores desastrosos.
+
+\section{Mapa de Memoria}
+Todos los hilos de un mismo proceso comparten el direccionamiento virtual.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth, 
+    seg/.style={draw, thick, fill=gray!10, minimum width=3cm, minimum height=0.7cm, align=center},
+    shared/.style={fill=green!15},
+    priv/.style={fill=blue!15}]
+
+    % Memory stack
+    \node[seg, shared] (heap) at (0, 3) {Heap (Shared)};
+    \node[seg, shared] (data) at (0, 2.4) {Global Data (Shared)};
+    \node[seg, shared] (code) at (0, 1.8) {Code / Text (Shared)};
+
+    % Gap
+    \node at (0, 1.2) {...};
+
+    % Individual Stacks
+    \node[seg, priv] (s1) at (-2, 0) {Stack Thread 1 \\ \tiny (Local Vars)};
+    \node[seg, priv] (s2) at (2, 0) {Stack Thread 2 \\ \tiny (Local Vars)};
+
+    % Connections
+    \draw[<->, dashed, gray] (heap) -- (s1);
+    \draw[<->, dashed, gray] (heap) -- (s2);
+
+\end{tikzpicture}
+\end{center}
+
+\section{¿Qué se comparte?}
+\begin{itemize}
+    \item \textbf{Variables Globales:} Si un hilo cambia una variable global, el otro verá el cambio inmediatamente.
+    \item \textbf{Heap (\texttt{malloc}):} Si un hilo reserva memoria, el puntero es válido para todos los demás.
+    \item \textbf{Descriptores de Archivo:} Si un hilo abre un archivo, otro puede leerlo usando el mismo FD.
+\end{itemize}
+
+\section{¿Qué es privado?}
+\begin{itemize}
+    \item \textbf{Stack:} Las variables declaradas dentro de la función del hilo son privadas.
+    \item \textbf{Registros / PC:} Cada hilo está en su propia línea de código.
+\end{itemize}
+
+\section{Ejemplo: La Variable Problemática}
+\begin{lstlisting}
+#include <stdio.h>
+#include <pthread.h>
+
+int global_shared = 0; // Public
+
+void* worker(void* arg) {
+    global_shared++; // Modifying shared memory
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, worker, NULL);
+    pthread_create(&t2, NULL, worker, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    printf("Final value: %d\n", global_shared);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Modifique el ejemplo anterior para que cada hilo incremente la variable 1,000,000 de veces. ¿El resultado es siempre 2,000,000? ¿Por qué?
+    \item Intente pasar un puntero a una variable local del \texttt{main} a dos hilos diferentes. ¿Pueden ambos modificarla?
+\end{enumerate}
+
+\end{document}

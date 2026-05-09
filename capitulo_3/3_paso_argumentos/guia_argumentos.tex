@@ -1,0 +1,140 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 3: Paso de Argumentos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Paso de Múltiples Argumentos a Hilos}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{El Desafío}
+La función \texttt{pthread\_create} solo permite pasar un único puntero (\texttt{void*}) como argumento al hilo. Si necesitamos que el hilo reciba una cadena, un entero y un flotante al mismo tiempo, no podemos hacerlo directamente.
+
+\section{La Solución: Estructuras (\texttt{struct})}
+La forma profesional y robusta de pasar múltiples datos es encapsularlos en una estructura y pasar la dirección de dicha estructura.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    % Data block
+    \node[draw, fill=blue!5, minimum width=2.5cm, minimum height=1.5cm] (struct) at (0,0) {
+        \begin{tabular}{c}
+            \textbf{struct data} \\ \hline
+            int id \\
+            char* msg \\
+            float value
+        \end{tabular}
+    };
+
+    % Thread Node
+    \node[draw, thick, fill=green!10, rounded corners=3pt, minimum width=2cm, minimum height=1cm] (thread) at (6,0) {Hilo};
+
+    % Arrow
+    \draw[->, ultra thick, violet!70!black] (struct.east) -- (thread.west) node[midway, above] {Puntero \texttt{void*}};
+\end{tikzpicture}
+\end{center}
+
+\section{Recordatorio Rápido: Cómo usar \texttt{struct}}
+Una estructura (\texttt{struct}) permite agrupar diferentes tipos de datos bajo un mismo nombre.
+
+\begin{lstlisting}
+// Definicion de una estructura
+typedef struct {
+    int edad;
+    char nombre[20];
+    float promedio;
+} estudiante;
+\end{lstlisting}
+
+Si tiene un puntero a una estructura, use \texttt{->} en lugar de \texttt{.}
+
+\begin{lstlisting}
+estudiante* ptr = &s1;
+printf("%s\n", ptr->nombre);
+\end{lstlisting}
+
+\newpage
+
+\section{Ejemplo: Pasando Datos de un Usuario}
+\begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+typedef struct {
+    int id;
+    char name[20];
+    int score;
+} thread_args;
+
+void* print_user_data(void* arg) {
+    thread_args* data = (thread_args*)arg; // Casting back
+    printf("Thread %d: User %s has %d points.\n", data->id, data->name, data->score);
+    return NULL;
+}
+
+int main() {
+    pthread_t thread;
+    thread_args* bundle = malloc(sizeof(thread_args));
+
+    // Prepare data
+    bundle->id = 1;
+    sprintf(bundle->name, "Developer");
+    bundle->score = 999;
+
+    pthread_create(&thread, NULL, print_user_data, (void*)bundle);
+    pthread_join(thread, NULL);
+
+    free(bundle); // Clean up memory
+    return 0;
+}
+\end{lstlisting}
+
+\section{¡Peligro! El error del Scoping}
+Nunca pase la dirección de una variable local de una función que pueda terminar antes que el hilo. Use memoria dinámica (\texttt{malloc}) para asegurar que los datos vivan lo suficiente.
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Cree un programa que lance 5 hilos. A cada hilo pásele un ID único y un tiempo de espera (\texttt{sleep}) usando una estructura.
+    \item Modifique el ejercicio anterior para que los hilos almacenen un resultado complejo en la misma estructura y lo lean en el \texttt{main} después del \texttt{join}.
+\end{enumerate}
+
+\end{document}

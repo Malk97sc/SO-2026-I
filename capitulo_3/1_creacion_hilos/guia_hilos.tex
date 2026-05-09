@@ -1,0 +1,144 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 3: Creación de Hilos}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Introducción a los Hilos (POSIX Threads)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivación}
+Hasta ahora, hemos visto procesos que se ejecutan de forma independiente. Sin embargo, crear un proceso nuevo con \texttt{fork()} es costoso porque el sistema operativo debe copiar casi todo el contexto del padre. Los \textbf{hilos} (threads) son unidades de ejecución más ligeras que conviven dentro de un mismo proceso y comparten gran parte de sus recursos.
+
+\section{Idea Fundamental}
+Un hilo es el ``flujo de ejecución''  más pequeño. Un solo proceso puede tener múltiples hilos ejecutándose simultáneamente. La diferencia clave es:
+\begin{itemize}
+    \item \textbf{Procesos:} Tienen su propio espacio de memoria (aislamiento).
+    \item \textbf{Hilos:} Comparten el código, los datos globales y el heap, pero tienen su propia pila (stack) y contador de programa (PC).
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth,
+    container/.style={draw, thick, fill=gray!5, minimum width=6cm, minimum height=4cm, align=center},
+    thread/.style={draw, thick, fill=blue!10, rounded corners=3pt, minimum width=1.5cm, minimum height=2cm, align=center}]
+
+    % --- PROCESS CONTAINER ---
+    \node[container] (proc) at (0,0) {};
+    \node[above] at (proc.north) {\textbf{Proceso (Recursos Compartidos)}};
+    
+    % Shared segments
+    \node[draw, fill=yellow!20, minimum width=5.5cm] at (0, 1.3) {Code / Data / Heap / Files};
+
+    % Threads
+    \node[thread] (t1) at (-1.5, -0.5) {Thread 1 \\ \tiny (Stack 1)};
+    \node[thread] (t2) at (1.5, -0.5) {Thread 2 \\ \tiny (Stack 2)};
+
+    % Execution wave
+    \draw[blue!60!black, ultra thick, out=45, in=225] (-1.8, -1) to (-1.2, 0);
+    \draw[blue!60!black, ultra thick, out=45, in=225] (1.2, -1) to (1.8, 0);
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section{Sintaxis Básica (pthreads)}
+Para trabajar con hilos en Linux usamos la librería \texttt{pthread} (hay que compilar con \texttt{-lpthread}).
+
+\begin{lstlisting}[numbers=none]
+#include <pthread.h>
+
+// 1. Definition of the function the thread will run
+void* thread_routine(void* arg);
+
+// 2. Variable to store the thread ID
+pthread_t thread_id;
+
+// 3. Thread creation
+pthread_create(&thread_id, NULL, thread_routine, (void*)arg);
+\end{lstlisting}
+
+\section{Ejemplo Mínimo: Hola desde un Hilo}
+\begin{lstlisting}
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+void *say_hello(void* arg);
+
+int main(){
+    pthread_t thread;
+
+    // Create the thread
+    if(pthread_create(&thread, NULL, say_hello, NULL) != 0){
+        perror("Failed to create thread");
+        return 1;
+    }
+
+    printf("Main thread: Thread created successfully.\n");
+    
+    // Wait for the thread (we will deepen this in section 2)
+    pthread_join(thread, NULL); 
+
+    return 0;
+}
+
+void *say_hello(void* arg){
+    printf("Greetings from the new thread!\n");
+    return NULL;
+}
+
+\end{lstlisting}
+
+\section{Compilación}
+Es fundamental añadir el flag \texttt{-lpthread} al compilar con \texttt{gcc}:
+\begin{lstlisting}[language=bash, numbers=none]
+gcc main.c -o program -lpthread
+\end{lstlisting}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Escriba un programa que cree dos hilos. Cada hilo debe imprimir un mensaje diferente 5 veces.
+    \item ¿Qué sucede si el hilo principal (\texttt{main}) termina antes de que los otros hilos finalicen? Investíguelo.
+\end{enumerate}
+
+\end{document}

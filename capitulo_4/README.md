@@ -19,15 +19,31 @@ Implementación de puntos de control donde un grupo de hilos debe esperar a que 
 ### 3. [Variables de Condición](./3_variables_condicion/)
 Mecanismos avanzados para que los hilos esperen señales sobre cambios en el estado de los datos compartidos.
 
-## Cómo Compilar las Guías
-Cada subdirectorio contiene un `Makefile` para generar los documentos PDF a partir de los archivos `.tex`. 
+## Configuración Requerida
 
-Para compilar todo el capítulo, ejecute desde la raíz de este directorio:
-```bash
-make
+Para usar `pthread_barrier_t`, es necesario agregar la siguiente `defines` en el archivo `c_cpp_properties.json`:
+
+```json
+"defines": [
+    "_XOPEN_SOURCE=700"
+]
 ```
 
-Para limpiar los archivos generados:
-```bash
-make clean
-```
+### Cómo agregar la macro _XOPEN_SOURCE=700
+
+1. Presiona `Ctrl + Shift + P` para abrir la paleta de comandos en VS
+2. Escribe `C/C++: Edit Configurations` y selecciona esa opción
+3. Se abrirá el archivo `c_cpp_properties.json`
+4. En la sección `"defines"`, agrega `"_XOPEN_SOURCE=700"`
+5. Guarda el archivo
+
+### ¿Por qué es necesario?
+
+`_XOPEN_SOURCE=700` es una macro de compilación que activa las características **POSIX.1-2008** del estándar POSIX. Sin esta macro:
+
+- El compilador no reconoce `pthread_barrier_t`, `pthread_barrier_init()`, etc.
+- Obtendrás errores como "unknown type name 'pthread_barrier_t'" o "implicit declaration of function 'pthread_barrier_init'"
+- Es una medida de seguridad del compilador: solo expone las funciones POSIX cuando se especifica explícitamente
+
+Al agregar esta define, le indicamos al compilador (y al editor de VS Code) que queremos usar características POSIX modernas para sincronización de hilos.
+

@@ -9,7 +9,7 @@ void read_file(const char *file, int ***mtx, int *rows, int *cols);
 int main(int argc, char **argv){
     if(argc < 2){
         perror("Send a file\n");
-        return EXIT_FAILURE;
+        return EXIT_FAILURE; 
     }
     int rows, cols;
     int **mtx;

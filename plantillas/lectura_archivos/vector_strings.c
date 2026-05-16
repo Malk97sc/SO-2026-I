@@ -14,7 +14,7 @@ int main(int argc, char **argv){
         perror("Send a file\n");
         return EXIT_FAILURE;
     }
-    char **vec;
+    char **vec; 
     int size;
 
     read_file(argv[1], &vec, &size);

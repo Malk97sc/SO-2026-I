@@ -17,7 +17,7 @@ int main(int argc, char **argv){
     read_file(argv[1], &vec, &size);
 
     //TU CODIGO
-
+ 
     free(vec);
     return EXIT_SUCCESS;
 }

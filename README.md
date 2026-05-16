@@ -18,6 +18,8 @@ El repositorio está organizado por módulos temáticos que cubren desde los fun
 ### Recursos Adicionales
 - **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" de código listos para adaptar a tus ejercicios.
 - **[Preparación](preparacion/)**: Carpeta central para simulacros de talleres y preparación de exámenes parciales.
+- **[Evaluaciones](evaluaciones/)**: Resolución de talleres y parciales realizados en la materia, sirviendo como material de retroalimentación y estudio.
+
 
 ## Requisitos
 

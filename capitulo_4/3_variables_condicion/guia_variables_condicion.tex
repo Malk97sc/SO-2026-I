@@ -1,0 +1,142 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 4: Variables de Condición}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Variables de Condición}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Concepto}
+Las \textbf{Variables de Condición} permiten que un hilo se suspenda (se duerma) hasta que una condición específica se cumpla. A diferencia de un Mutex, que protege datos, las variables de condición permiten que los hilos se comuniquen sobre el \textit{estado} de esos datos.
+
+\section{Regla de Oro}
+Una variable de condición \textbf{siempre} debe usarse en conjunto con un Mutex para evitar condiciones de carrera entre la comprobación de la condición y el acto de dormirse.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth,
+    node/.style={draw, thick, minimum width=2.5cm, minimum height=1cm, align=center}]
+
+    \node[node, fill=orange!20] (t1) at (-4, 0) {Hilo Consumidor \\ (Espera señal)};
+    \node[node, fill=green!20] (cond) at (0, 0) {Variable de \\ Condición};
+    \node[node, fill=blue!20] (t2) at (4, 0) {Hilo Productor \\ (Envía señal)};
+
+    \draw[->, ultra thick] (t1) -- (cond) node[midway, below] {wait()};
+    \draw[->, ultra thick] (t2) -- (cond) node[midway, below] {signal()};
+    
+    \node at (0, -1.5) {\textit{``Avísame cuando el tanque esté lleno''}};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section{Funciones Principales}
+\begin{lstlisting}[numbers=none]
+#include <pthread.h>
+
+pthread_cond_t cond;
+pthread_mutex_t lock;
+
+// Esperar (libera el mutex y se duerme)
+pthread_cond_wait(&cond, &lock);
+
+// Despertar a UN hilo
+pthread_cond_signal(&cond);
+
+// Despertar a TODOS los hilos
+pthread_cond_broadcast(&cond);
+\end{lstlisting}
+
+\section{Ejemplo: Productor-Consumidor (Básico)}
+\begin{lstlisting}
+#include <stdio.h>
+#include <pthread.h>
+
+int combustible = 0;
+pthread_mutex_t lock;
+pthread_cond_t cond;
+
+void* reabastecer(void* arg) {
+    pthread_mutex_lock(&lock);
+    combustible += 40;
+    printf("Reabastecido. Combustible: %d\n", combustible);
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&lock);
+    return NULL;
+}
+
+void* conducir(void* arg) {
+    pthread_mutex_lock(&lock);
+    while (combustible < 40) {
+        printf("No hay suficiente. Esperando...\n");
+        pthread_cond_wait(&cond, &lock);
+    }
+    combustible -= 40;
+    printf("Viaje realizado. Restante: %d\n", combustible);
+    pthread_mutex_unlock(&lock);
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_mutex_init(&lock, NULL);
+    pthread_cond_init(&cond, NULL);
+
+    pthread_create(&t1, NULL, conducir, NULL);
+    pthread_create(&t2, NULL, reabastecer, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    pthread_mutex_destroy(&lock);
+    pthread_cond_destroy(&cond);
+}
+\end{lstlisting}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item ¿Por qué se usa un \texttt{while} en lugar de un \texttt{if} al llamar a \texttt{pthread\_cond\_wait}?
+    \item Implemente una cola sincronizada (Buffer Circular) usando variables de condición para manejar los estados de ``Cola Llena'' y ``Cola Vacía''.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,137 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 4: Sincronización - Barreras}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Barreras de Sincronización}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Concepto}
+Una \textbf{Barrera} es un mecanismo de sincronización que permite que un grupo de hilos se esperen mutuamente en un punto específico del código antes de continuar. Ningún hilo puede cruzar la barrera hasta que el número especificado de hilos haya llegado a ella.
+
+\section{Analogía}
+Imagine un grupo de amigos que van de excursión. Deciden encontrarse en la cima de una montaña. Los que llegan primero deben esperar a los más lentos. Solo cuando \textit{todos} están en la cima, pueden empezar a bajar juntos.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, >=Stealth]
+    
+    % Barrier Line
+    \draw[ultra thick, gray!80, dashed] (0, -3) -- (0, 3) node[above] {Punto de Barrera};
+    \fill[gray!20] (-0.2, -3) rectangle (0.2, 3);
+    \draw[thick] (-0.2, -3) -- (-0.2, 3);
+    \draw[thick] (0.2, -3) -- (0.2, 3);
+
+    % Threads coming
+    \node[draw, fill=blue!10, rounded corners] (t1) at (-2, 2) {Hilo 1};
+    \node[draw, fill=blue!10, rounded corners] (t2) at (-2, 0.5) {Hilo 2};
+    \node[draw, fill=green!10, rounded corners] (t3) at (-0.1, -1) {Hilo 3 (Esperando)};
+    \node[draw, fill=green!10, rounded corners] (t4) at (-0.1, -2.5) {Hilo 4 (Esperando)};
+
+    \draw[->, thick] (t1) -- (-0.5, 2);
+    \draw[->, thick] (t2) -- (-0.5, 0.5);
+    \node[align=center] at (2, 0) {Nadie pasa hasta que\\ todos lleguen.};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section{Funciones Principales}
+\begin{lstlisting}[numbers=none]
+#include <pthread.h>
+
+pthread_barrier_t barrera;
+
+// Inicializacion (n = numero de hilos a esperar)
+pthread_barrier_init(&barrera, NULL, n);
+
+// Esperar en la barrera
+pthread_barrier_wait(&barrera);
+
+// Destruir
+pthread_barrier_destroy(&barrera);
+\end{lstlisting}
+
+\section{Ejemplo: Procesamiento por Etapas}
+\begin{lstlisting}
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+#define NUM_THREADS 3
+pthread_barrier_t barrier;
+
+void* task(void* arg) {
+    long id = (long)arg;
+    printf("Hilo %ld: Realizando fase 1...\n", id);
+    sleep(id + 1); // Simular trabajo variable
+
+    printf("Hilo %ld: Llego a la barrera.\n", id);
+    pthread_barrier_wait(&barrier);
+
+    printf("Hilo %ld: Iniciando fase 2!\n", id);
+    return NULL;
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    pthread_barrier_init(&barrier, NULL, NUM_THREADS);
+
+    for(long i = 0; i < NUM_THREADS; i++)
+        pthread_create(&threads[i], NULL, task, (void*)i);
+
+    for(int i = 0; i < NUM_THREADS; i++)
+        pthread_join(threads[i], NULL);
+
+    pthread_barrier_destroy(&barrier);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item Implemente un programa con 5 hilos que calculen partes de un arreglo y luego necesiten una barrera para sumar los resultados parciales en un hilo maestro.
+    \item ¿Qué sucede si el número de hilos pasados a \texttt{init} es mayor que los hilos que realmente llaman a \texttt{wait}?
+\end{enumerate}
+
+\end{document}

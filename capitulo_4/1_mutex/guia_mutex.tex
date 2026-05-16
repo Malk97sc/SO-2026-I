@@ -1,0 +1,175 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{lockred}{rgb}{0.8,0,0}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    inputencoding=utf8,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {¡}{{\textexclamdown}}1 {¿}{{\textquestiondown}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Capítulo 4: Sincronización - Mutex}
+\cfoot{\thepage}
+
+\title{\textbf{Guía de Aprendizaje: Exclusión Mutua (Mutex)}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{El Problema: Condición de Carrera}
+Cuando múltiples hilos acceden y modifican un recurso compartido (como una variable global) al mismo tiempo, el resultado final puede depender del orden impredecible de ejecución. Esto se conoce como \textbf{Condición de Carrera} (Race Condition).
+
+\section{La Solución: Mutex}
+Un \textbf{Mutex} (MUTual EXclusion) es un mecanismo de sincronización que asegura que solo un hilo a la vez pueda acceder a una sección crítica de código. Es como una llave única: solo el hilo que tiene la llave puede entrar a la habitación; los demás deben esperar afuera.
+
+\begin{center}
+\begin{tikzpicture}[
+    font=\small,
+    >=Stealth,
+    thread/.style={
+        draw,
+        thick,
+        rounded corners=2pt,
+        fill=blue!10,
+        minimum width=3cm,
+        minimum height=1.2cm,
+        align=center
+    },
+    resource/.style={
+        draw,
+        thick,
+        rounded corners=2pt,
+        fill=green!20,
+        minimum width=4cm,
+        minimum height=1.5cm,
+        align=center
+    },
+    lock/.style={
+        draw,
+        thick,
+        circle,
+        fill=red!55,
+        minimum size=2cm,
+        align=center
+    }
+]
+
+    % Mutex
+    \node[lock] (mutex) at (0,0) {\textbf{LOCKED}};
+
+    % Threads
+    \node[thread] (t1) at (-4,2) {Hilo A\\(En ejecución)};
+    \node[thread] (t2) at (4,2) {Hilo B\\(Bloqueado)};
+
+    % Resource
+    \node[resource] (res) at (0,-3) {Recurso Compartido\\(Variable Global)};
+
+    % Arrows
+    \draw[->, ultra thick, blue]
+        (t1.south east) to[bend left=10]
+        node[midway, above, sloped] {Posee la llave}
+        (mutex.north west);
+
+    \draw[->, ultra thick, gray]
+        (t2.south west) to[bend right=10]
+        node[midway, above, sloped] {Espera}
+        (mutex.north east);
+
+    \draw[->, thick]
+        (mutex.south) -- (res.north);
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\section{Funciones Principales}
+\begin{lstlisting}[numbers=none]
+#include <pthread.h>
+
+pthread_mutex_t mutex;
+
+// Inicializacion
+pthread_mutex_init(&mutex, NULL);
+
+// Bloquear (Entrar a la seccion critica)
+pthread_mutex_lock(&mutex);
+
+// Desbloquear (Salir de la seccion critica)
+pthread_mutex_unlock(&mutex);
+
+// Destruir
+pthread_mutex_destroy(&mutex);
+\end{lstlisting}
+
+\section{Ejemplo: Contador Seguro}
+\begin{lstlisting}
+#include <stdio.h>
+#include <pthread.h>
+
+int contador = 0;
+pthread_mutex_t lock;
+
+void* incrementar(void* arg) {
+    for(int i = 0; i < 1000000; i++) {
+        pthread_mutex_lock(&lock);
+        contador++;
+        pthread_mutex_unlock(&lock);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_mutex_init(&lock, NULL);
+
+    pthread_create(&t1, NULL, incrementar, NULL);
+    pthread_create(&t2, NULL, incrementar, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    printf("Valor final del contador: %d\n", contador);
+    pthread_mutex_destroy(&lock);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Ejercicios}
+\begin{enumerate}
+    \item ¿Qué sucede si olvida llamar a \texttt{pthread\_mutex\_unlock}? Pruebe el comportamiento.
+    \item Implemente un programa donde varios hilos retiren dinero de una cuenta bancaria compartida, asegurando que el saldo nunca sea negativo.
+\end{enumerate}
+
+\end{document}

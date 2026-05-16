@@ -4,7 +4,7 @@ Repositorio oficial con el material de apoyo, guías técnicas y ejemplos de có
 
 ## Estructura del Contenido
 
-El repositorio está organizado por módulos temáticos que cubren desde los fundamentos de C hasta la sincronización avanzada de procesos.
+El repositorio está organizado por módulos temáticos que cubren desde los fundamentos de C hasta la sincronización avanzada de hilos.
 
 ### Módulos Temáticos
 | Directorio | Título de Módulo | Descripción de Contenidos |
@@ -13,11 +13,11 @@ El repositorio está organizado por módulos temáticos que cubren desde los fun
 | **[Capítulo 1](capitulo_1/)** | **Gestión de Procesos** | Creación (`fork`), jerarquías de procesos, estados de procesos y sincronización con `wait`. |
 | **[Capítulo 2](capitulo_2/)** | **Comunicación (IPC)** | Mecanismos de  comunicación entre procesos: señales, tuberías (`pipes`) y memoria compartida (`shm`). |
 | **[Capítulo 3](capitulo_3/)** | **Hilos (Pthreads)** | Concurrencia básica utilizando la librería POSIX Threads. |
-| **[Capítulo 4](capitulo_4/)** | **Sincronización** | Mutex, barreras y resolución de condiciones de carrera. |
+| **[Capítulo 4](capitulo_4/)** | **Sincronización** | Mutex, barreras, variables de condición y resolución de condiciones de carrera. |
 
 ### Recursos Adicionales
-- **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" de código listos para adaptar a tus propios ejercicios.
-- **[Preparación](preparacion/)**: Carpeta central para simulacros de proyectos, talleres y preparación de exámenes parciales.
+- **[Plantillas](plantillas/)**: Un espacio dedicado a fragmentos de código reutilizable. Aquí encontrarás "esqueletos" de código listos para adaptar a tus ejercicios.
+- **[Preparación](preparacion/)**: Carpeta central para simulacros de talleres y preparación de exámenes parciales.
 
 ## Requisitos
 

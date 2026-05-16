@@ -1,0 +1,105 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Pre-Taller: Hilos y Sincronización}
+\cfoot{\thepage}
+
+\title{\textbf{Pre-Taller 5: Línea de Ensamblaje Automotriz}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este ejercicio está diseñado para aplicar y dominar las variables de condición (\texttt{pthread\_cond\_t}) junto con mutex. En escenarios concurrentes, los hilos requieren pausar su ejecución en espera de que un estado semántico se cumpla.
+
+\section*{Problema: Productor y Consumidor en Etapas}
+Diseñe un simulador de una fábrica de automóviles dividida en tres estaciones: \textbf{Producción de Chasis}, \textbf{Instalación de Motor} y \textbf{Pintura y Acabado}. 
+
+Cada estación es operada por uno o múltiples hilos. El flujo es un ensamblaje en cadena, donde:
+\begin{itemize}
+    \item Los trabajadores de Chasis alimentan un almacén intermedio $A$.
+    \item Los trabajadores de Motores toman piezas de $A$, acoplan el motor, y mueven el vehículo al almacén intermedio $B$.
+    \item Los trabajadores de Pintura toman del almacén $B$, terminan el vehículo y lo cuentan como un producto finalizado.
+\end{itemize}
+
+Ambos almacenes intermedios (\textit{buffers}) tienen una capacidad limitada. Si un almacén está lleno, los productores anteriores deben \textbf{quedar bloqueados temporalmente} hasta que haya espacio. Si un almacén está vacío, los consumidores deben esperar hasta que lleguen nuevas unidades.
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, font=\small, >=Stealth]
+    \node[draw, rounded corners, fill=orange!10, align=center] (chasis) {Hilos \\ Chasis};
+    \node[draw, rectangle, fill=blue!10, right=of chasis] (buffA) {Buffer A (Max 5)};
+    \node[draw, rounded corners, fill=orange!10, right=of buffA, align=center] (motor) {Hilos \\ Motor};
+    \node[draw, rectangle, fill=blue!10, below=of motor] (buffB) {Buffer B (Max 5)};
+    \node[draw, rounded corners, fill=orange!10, left=of buffB, align=center] (pintura) {Hilos \\ Pintura};
+    
+    \draw[->, thick, color=black] (chasis) -- (buffA);
+    \draw[->, thick, color=black] (buffA) -- (motor);
+    \draw[->, thick, color=black] (motor) -- (buffB);
+    \draw[->, thick, color=black] (buffB) -- (pintura);
+    \draw[->, thick, dashed] (pintura) -- ++(-2,0) node[left] {Vehículos Terminados};
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+\textbf{Ejemplo de ejecución esperado:} 
+\begin{lstlisting}[numbers=none]
+$ ./linea_ensamblaje 20
+[Sistema] Meta de produccion: 20 vehiculos.
+[Chasis 1] Fabrica chasis (Buffer A: 1/5)
+[Chasis 2] Fabrica chasis (Buffer A: 2/5)
+[Motor 1] Toma chasis, acopla motor (Buffer A: 1/5, Buffer B: 1/5)
+[Pintura 1] Pita vehiculo. !Vehiculo terminado! (Total: 1)
+...
+[Sistema] Produccion de 20 vehiculos completada con exito.
+\end{lstlisting}
+
+\section*{Requerimientos Técnicos}
+\begin{enumerate}
+    \item En la implementación es de carácter obligatorio utilizar la combinación cíclica de \texttt{pthread\_mutex\_lock}, bucles \texttt{while} y \texttt{pthread\_cond\_wait} para la supervisión del inventario en los \textit{buffers}.
+    \item El programa debe terminar su ejecución de forma completamente limpia una vez se ha alcanzado la meta de vehículos a producir. Para esto, debe emitir las señales de variables de condición (\texttt{broadcast}) necesarias para despertar a los hilos en espera y notificarles que el programa ha terminado.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item \textbf{Correctitud Concurrente:} Uso óptimo de las variables de condición. Ausencia comprobada de condiciones donde hilos consumidores se queden esperando para siempre al final de la jornada.
+    \item \textbf{Manejo de Limites:} Garantizar de forma estricta que nunca se rebosan ni se leen \textit{buffers} vacíos.
+\end{itemize}
+
+\end{document}

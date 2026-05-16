@@ -1,0 +1,111 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=C,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    tabsize=4,
+    extendedchars=true,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Monitorías Sistemas Operativos 2026-I}
+\rhead{Pre-Taller: Hilos}
+\cfoot{\thepage}
+
+\title{\textbf{Pre-Taller 4: Analizador de Sistemas Estelares Distribuido}}
+\author{Malak Sanchez \\ \small Monitorías de Sistemas Operativos}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introducción}
+Este ejercicio avanzado de hilos POSIX (\texttt{pthreads}) explora la coordinación entre diferentes tipos de hilos (trabajadores y analíticos) y el procesamiento de múltiples fuentes de datos en paralelo. Se busca implementar un flujo de trabajo donde la recolección distribuida de datos precede a un análisis estadístico centralizado.
+
+\section*{Problema: Procesamiento Galáctico en Dos Etapas}
+Se requiere procesar la información de múltiples galaxias. El programa recibe un archivo maestro (\texttt{galaxias.txt}) que contiene una lista de nombres de archivos (ej. \texttt{andromeda.db}, \texttt{via\_lactea.db}), donde cada archivo secundario guarda las magnitudes de brillo de miles de estrellas.
+
+\subsection*{Etapa 1: Recolección Concurrente}
+Por cada archivo listado en el maestro, el programa debe crear un \textbf{Hilo Recolector}. Cada hilo abrirá su archivo asignado, leerá las magnitudes y las almacenará en un espacio compartido.
+
+\subsection*{Etapa 2: Análisis Estadístico}
+Al inicio del programa, además de los recolectores, se debe crear un único \textbf{Hilo Estadístico}. Este hilo debe permanecer en espera y solo activarse una vez que \textbf{todos} los hilos recolectores hayan finalizado su tarea. Su función es procesar los datos recolectados para calcular la \textbf{media, mediana y moda} del brillo estelar por cada galaxia.
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm, font=\small, >=Stealth]
+    \node[draw, rectangle, fill=gray!10, minimum width=3cm] (master) {\texttt{galaxias.txt}};
+    
+    \node[draw, rounded corners, fill=blue!10, below=of master, xshift=-3cm] (h1) {Recolector 1};
+    \node[draw, rounded corners, fill=blue!10, below=of master, xshift=0cm] (h2) {Recolector 2};
+    \node[draw, rounded corners, fill=blue!10, below=of master, xshift=3cm] (h3) {Recolector $N$};
+    
+    \node[draw, rectangle, fill=orange!20, below=3cm of h2, minimum width=8cm] (shm) {Buffer de Datos Global (Magnitudes por Galaxia)};
+    
+    \node[draw, ellipse, fill=green!10, below=of shm] (stats) {Hilo Estadístico};
+
+    \draw[->, thick] (master.south) -- (h1.north);
+    \draw[->, thick] (master.south) -- (h2.north);
+    \draw[->, thick] (master.south) -- (h3.north);
+    
+    \draw[->, thick, dashed] (h1.south) -- (shm.150);
+    \draw[->, thick, dashed] (h2.south) -- (shm.90);
+    \draw[->, thick, dashed] (h3.south) -- (shm.30);
+    
+    \draw[<-, thick, color=red] (stats.north) -- (shm.south) node[midway, right] {Procesa Final};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Ejemplo de ejecución esperado:} 
+\begin{lstlisting}[numbers=none]
+$ ./analizador_galactico galaxias.txt
+[Main] Detectadas 3 galaxias en el archivo maestro.
+[Main] Creando 3 recolectores y 1 hilo estadistico...
+[Recolector 1] Leyendo andromeda.db... (Exito)
+[Recolector 2] Leyendo via_lactea.db... (Exito)
+[Stats] Todos los recolectores terminaron. Iniciando calculos.
+[Reporte] Via Lactea -> Media: 12.4, Mediana: 11.5, Moda: 10
+\end{lstlisting}
+
+\section*{Requerimientos Técnicos}
+\begin{enumerate}
+    \item El hilo principal debe crear todos los hilos (recolectores y estadístico) al inicio.
+    \item El \textbf{Hilo Estadístico} debe esperar a que los hilos recolectores terminen. Se debe utilizar algun mecanismo de sincronización para esta tarea.
+    \item Se debe usar \texttt{malloc} para gestionar la memoria de las magnitudes leídas, ya que el número de estrellas puede variar por galaxia.
+    \item Implementar correctamente el cálculo de la \textbf{mediana} (requiere ordenar los datos) y la \textbf{moda}.
+    \item Garantizar que no existan fugas de memoria y que todos los descriptores de archivos se cierren correctamente.
+\end{enumerate}
+
+\section*{Criterios de Evaluación}
+\begin{itemize}
+    \item \textbf{Gestión de Ciclo de Vida:} Correcta gestión de la vida de los hilos y su sincronización.
+    \item \textbf{Lógica Matemática:} Implementación precisa de los algoritmos estadísticos sobre los datos dinámicos.
+    \item \textbf{Robustez:} Manejo de errores en la apertura de archivos y reserva de memoria.
+\end{itemize}
+
+\end{document}

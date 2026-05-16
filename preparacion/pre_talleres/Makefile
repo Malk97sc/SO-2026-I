@@ -1,6 +1,6 @@
 # Makefile para Pre-Talleres
 
-TARGETS = taller_1_senales taller_2_tuberias taller_3_memoria
+TARGETS = taller_1_senales taller_2_tuberias taller_3_memoria taller_4_hilos_galaxias taller_5_hilos_ensamblaje
 PDFS = $(addsuffix .pdf, $(TARGETS))
 
 all: $(PDFS)

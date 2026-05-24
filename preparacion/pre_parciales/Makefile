@@ -1,4 +1,4 @@
-TARGETS = pre_parcial_1
+TARGETS = pre_parcial_1 pre_parcial_2
 PDFS = $(addsuffix .pdf, $(TARGETS))
 
 all: $(PDFS)

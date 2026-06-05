@@ -1,6 +1,6 @@
 # Monitorías de Sistemas Operativos 2026-I
 
-Repositorio oficial con el material de apoyo, guías técnicas y ejemplos de código utilizados en las monitorías de la asignatura Sistemas Operativos durante el semestre 2026-I. El objetivo de este espacio es facilitar la comprensión de la programación de sistemas en entornos POSIX (Linux) utilizando el lenguaje C como herramienta principal.
+Repositorio oficial con el material de apoyo, guías técnicas y ejemplos de código utilizados en las monitorías de la asignatura Sistemas Operativos en la Universidad del Magdalena durante el semestre 2026-I. Todo el contenido de este repositorio fue desarrollado y trabajado integralmente durante mi etapa como monitor académico. El objetivo de este espacio es facilitar la comprensión de la programación de sistemas en entornos POSIX (Linux) utilizando el lenguaje C como herramienta principal.
 
 ## Estructura del Contenido
 
@@ -26,4 +26,4 @@ El repositorio está organizado por módulos temáticos que cubren desde los fun
 - Compilador GCC.
 - Entorno basado en Linux o compatible con POSIX.
 
-**Estado del Proyecto**: El repositorio se encuentra en constante actualización durante el transcurso del primer semestre de 2026.
+**Estado del Proyecto**: La construcción y actualización de este repositorio ha concluido de manera definitiva tras la finalización de mi etapa como monitor.
